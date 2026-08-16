@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- Handle Bar -->
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bottom_sheet_handle" />
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="4dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="@font/open_sans_bold"
+            android:textStyle="bold"
+            android:letterSpacing="0.01"
+            android:text="@string/bs_title_voiceovers"
+            android:textColor="@color/primary_text_color"
+            android:textSize="@dimen/bs_title_text_size"
+            android:paddingVertical="8dp" />
+
+        <ImageButton
+            android:id="@+id/closeMenuButton"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:background="@drawable/button_close_background"
+            android:contentDescription="Close Menu"
+            android:padding="7dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_close"
+            app:tint="@color/accent_text_color" />
+
+    </LinearLayout>
+
+    <!-- Player Selector TabLayout -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="0dp"
+        android:background="@android:color/transparent"
+        app:tabIndicatorColor="@color/purple_primary"
+        app:tabSelectedTextColor="@color/purple_primary"
+        app:tabTextColor="@color/accent_text_color"
+        app:tabMode="fixed"
+        app:tabGravity="fill" />
+
+    <!-- Line under tabs -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/bs_divider_color" />
+
+    <!-- Players List Container with loading overlay -->
+    <com.example.animelib.ui.MaxHeightFrameLayout
+        android:id="@+id/playersContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="120dp">
+
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/viewPager"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Shadow overlay under tabs -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:layout_gravity="top"
+            android:background="@drawable/bg_tab_shadow"
+            android:clickable="false"
+            android:focusable="false" />
+
+        <FrameLayout
+            android:id="@+id/menuLoadingOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/bs_bg_color"
+            android:visibility="gone">
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/menuLoadingIndicator"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                app:indicatorColor="@color/purple_primary"
+                app:trackCornerRadius="8dp"
+                app:trackThickness="4dp" />
+        </FrameLayout>
+    </com.example.animelib.ui.MaxHeightFrameLayout>
+</LinearLayout>

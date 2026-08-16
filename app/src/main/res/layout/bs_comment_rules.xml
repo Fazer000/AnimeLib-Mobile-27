@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true"
+    android:overScrollMode="never"
+    android:background="@android:color/transparent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="8dp"
+        android:paddingBottom="20dp"
+        android:background="@android:color/transparent">
+
+        <!-- Bottom sheet drag handle -->
+        <View
+            android:layout_width="36dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bottom_sheet_handle"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"/>
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="6dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <FrameLayout
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="@drawable/bg_rules_icon_circle"
+                android:layout_marginEnd="10dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_toast_info"
+                    app:tint="?attr/secondaryColor"
+                    android:contentDescription="Rules" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tvRulesTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Правила комментариев"
+                android:textColor="@color/primary_text_color"
+                android:textSize="@dimen/bs_title_text_size"
+                android:fontFamily="@font/open_sans_bold"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/btnCloseRules"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/button_close_background"
+                android:src="@drawable/ic_close"
+                app:tint="@color/accent_text_color"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="Close" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="12dp"
+            android:background="@color/bs_divider_color" />
+
+        <!-- Loading indicator -->
+        <ProgressBar
+            android:id="@+id/pbRulesLoading"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center"
+            android:layout_marginVertical="32dp"
+            android:indeterminateTint="?attr/secondaryColor"
+            android:visibility="visible" />
+
+        <!-- Error Container -->
+        <LinearLayout
+            android:id="@+id/layoutRulesError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvRulesError"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Не удалось загрузить правила"
+                android:textColor="@color/secondary_text_color"
+                android:textSize="14sp"
+                android:gravity="center" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRulesRetry"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginTop="12dp"
+                android:text="Повторить"
+                android:textColor="@color/white_color"
+                android:textSize="13sp"
+                android:fontFamily="@font/open_sans_bold"
+                android:backgroundTint="?attr/secondaryColor"
+                app:cornerRadius="10dp" />
+        </LinearLayout>
+
+        <!-- Rules content container (dynamic paragraphs or full text view) -->
+        <LinearLayout
+            android:id="@+id/rulesContentContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:visibility="gone" />
+
+        <!-- Understand / Accept Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnUnderstandRules"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="16dp"
+            android:text="Понятно"
+            android:textColor="@color/white_color"
+            android:textSize="14sp"
+            android:fontFamily="@font/open_sans_bold"
+            android:textStyle="bold"
+            android:backgroundTint="?attr/secondaryColor"
+            app:cornerRadius="12dp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

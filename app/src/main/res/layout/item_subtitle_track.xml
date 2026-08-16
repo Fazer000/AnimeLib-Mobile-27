@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="12dp"
+    android:background="@android:color/transparent"
+    android:foreground="?attr/selectableItemBackground">
+
+    <TextView
+        android:id="@+id/subtitleTrackFormat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/tag_fhd_background"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp"
+        android:text="ASS"
+        android:textColor="#FFFFFF"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:layout_marginEnd="12dp" />
+
+    <TextView
+        android:id="@+id/subtitleTrackTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="Субтитры"
+        android:textColor="@color/primary_text_color"
+        android:textSize="15sp" />
+
+    <ImageView
+        android:id="@+id/subtitleTrackCheck"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:src="@drawable/ic_check"
+        app:tint="@color/secondary_text_color"
+        android:visibility="gone" />
+</LinearLayout>
