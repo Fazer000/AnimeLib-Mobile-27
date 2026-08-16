@@ -89,6 +89,7 @@ public class DownloadsActivity extends AppCompatActivity implements DownloadServ
 
     // Downloaded Section Views
     private LinearLayout containerDownloadedSection;
+    private TextView tvDownloadedSectionHeader;
     private RecyclerView rvDownloadedAnime;
     private LinearLayout layoutEmpty;
     private MaterialButton btnBackToApp;
@@ -220,6 +221,7 @@ public class DownloadsActivity extends AppCompatActivity implements DownloadServ
 
         // Initialize Downloaded section views
         containerDownloadedSection = findViewById(R.id.containerDownloadedSection);
+        tvDownloadedSectionHeader = findViewById(R.id.tvDownloadedSectionHeader);
         rvDownloadedAnime = findViewById(R.id.rvDownloadedAnime);
         layoutEmpty = findViewById(R.id.layoutEmpty);
         btnBackToApp = findViewById(R.id.btnBackToApp);
@@ -433,7 +435,13 @@ public class DownloadsActivity extends AppCompatActivity implements DownloadServ
     private void updateQueueSection() {
         List<DownloadService.TaskProgressItem> activeItems = DownloadService.getActiveTaskItems();
 
-        if (activeItems.isEmpty()) {
+        boolean hasQueue = activeItems != null && !activeItems.isEmpty();
+
+        if (tvDownloadedSectionHeader != null) {
+            tvDownloadedSectionHeader.setVisibility(hasQueue ? View.VISIBLE : View.GONE);
+        }
+
+        if (!hasQueue) {
             if (containerQueueSection != null) containerQueueSection.setVisibility(View.GONE);
             return;
         }

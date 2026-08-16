@@ -43,62 +43,28 @@
             android:singleLine="true"
             android:ellipsize="end" />
 
-        <LinearLayout
-            android:id="@+id/btnSortDownloads"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="6dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackgroundBorderless">
-
-            <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:src="@drawable/ic_sort_arrows"
-                app:tint="@color/primary_text_color"
-                android:contentDescription="Сортировка" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:text="Сортировка"
-                android:textColor="@color/primary_text_color"
-                android:textSize="14sp"
-                android:fontFamily="@font/open_sans" />
-        </LinearLayout>
-
-        <LinearLayout
+        <ImageButton
             android:id="@+id/btnSearchDownloads"
-            android:layout_width="wrap_content"
+            android:layout_width="36dp"
             android:layout_height="36dp"
-            android:layout_marginStart="6dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="6dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackgroundBorderless">
+            android:padding="6dp"
+            android:scaleType="fitCenter"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_search"
+            app:tint="@color/primary_text_color"
+            android:contentDescription="Поиск" />
 
-            <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:src="@drawable/ic_search"
-                app:tint="@color/primary_text_color"
-                android:contentDescription="Поиск" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:text="Поиск"
-                android:textColor="@color/primary_text_color"
-                android:textSize="14sp"
-                android:fontFamily="@font/open_sans" />
-        </LinearLayout>
+        <ImageButton
+            android:id="@+id/btnSortDownloads"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:padding="6dp"
+            android:scaleType="fitCenter"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_sort_arrows"
+            app:tint="@color/primary_text_color"
+            android:contentDescription="Сортировка" />
 
     </LinearLayout>
 
@@ -258,7 +224,7 @@
                                     android:layout_marginTop="6dp"
                                     android:max="100"
                                     android:progress="0"
-                                    android:progressDrawable="@drawable/progress_bar_background" />
+                                    android:progressDrawable="@drawable/bg_queue_progress_bar" />
 
                             </LinearLayout>
 
