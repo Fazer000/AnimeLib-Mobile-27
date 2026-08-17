@@ -306,6 +306,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
     // Player data is now managed by PlayersManager
     private boolean isOfflineMode = false;
+    private boolean isFirstOfflineLaunch = true;
     private final java.util.Map<String, com.example.animelib.data.entity.DownloadedEpisodeEntity> offlineEpisodesMap = new java.util.HashMap<>();
     private KodikResponse currentKodikResponse;
     private String currentAnimeId;
@@ -3796,7 +3797,8 @@ public class VideoPlayerActivity extends AppCompatActivity {
             SkeletonHelper.hideSkeleton(tvPortraitAnimeTitle, animeTitle != null ? animeTitle : "");
         }
         if (tvPortraitEpisodeTitle != null) {
-            String epNum = getIntent() != null ? getIntent().getStringExtra("EXTRA_EPISODE_NUMBER") : null;
+            EpisodesListResponse.EpisodeItem curEp = episodesManager != null ? episodesManager.getCurrentEpisode() : null;
+            String epNum = curEp != null && curEp.getNumber() != null ? curEp.getNumber() : (getIntent() != null ? getIntent().getStringExtra("EXTRA_EPISODE_NUMBER") : null);
             String cleanName = cleanEpisodeName(episodeTitle, epNum);
             String epTitle = (epNum != null && !epNum.isEmpty() ? (epNum + " серия") : "") + (!cleanName.isEmpty() ? (", " + cleanName) : "");
             SkeletonHelper.hideSkeleton(tvPortraitEpisodeTitle, epTitle);
@@ -3864,15 +3866,12 @@ public class VideoPlayerActivity extends AppCompatActivity {
             if (databaseManager == null) return;
 
             String animeId = getIntent().getStringExtra("EXTRA_ANIME_ID");
-            String epNumber = getIntent().getStringExtra("EXTRA_EPISODE_NUMBER");
+            String intentEpNumber = getIntent().getStringExtra("EXTRA_EPISODE_NUMBER");
 
             if (animeId == null && localPath != null) {
                 com.example.animelib.data.entity.DownloadedEpisodeEntity currentEp = databaseManager.findEpisodeByPath(localPath);
                 if (currentEp != null) {
                     animeId = currentEp.getAnimeId();
-                    if (epNumber == null) {
-                        epNumber = currentEp.getEpisodeNumber();
-                    }
                 }
             }
 
@@ -3903,32 +3902,55 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
                         episodeItems.add(item);
 
-                        if ((localPath != null && localPath.equals(dep.getLocalFilePath())) ||
-                            (epNumber != null && epNumber.equals(dep.getEpisodeNumber()))) {
-                            currentItem = item;
+                        // Priority 1: Exact match by localPath
+                        if (localPath != null && dep.getLocalFilePath() != null) {
+                            if (localPath.equals(dep.getLocalFilePath()) ||
+                                new java.io.File(localPath).getAbsolutePath().equals(new java.io.File(dep.getLocalFilePath()).getAbsolutePath())) {
+                                currentItem = item;
+                            }
+                        }
+                    }
+
+                    // Priority 2: Match by existing episodesManager current episode
+                    if (currentItem == null && episodesManager != null) {
+                        EpisodesListResponse.EpisodeItem existingCur = episodesManager.getCurrentEpisode();
+                        if (existingCur != null) {
+                            for (EpisodesListResponse.EpisodeItem item : episodeItems) {
+                                if (item.getNumber() != null && item.getNumber().equals(existingCur.getNumber())) {
+                                    currentItem = item;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Priority 3: Match by intent episode number
+                    if (currentItem == null && intentEpNumber != null && !intentEpNumber.isEmpty()) {
+                        for (EpisodesListResponse.EpisodeItem item : episodeItems) {
+                            if (item.getNumber() != null && item.getNumber().equals(intentEpNumber)) {
+                                currentItem = item;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Priority 4: Offline bookmark (only if no specific episode selected)
+                    com.example.animelib.data.entity.OfflineBookmarkEntity offlineBookmark = databaseManager.getOfflineBookmarkSync(animeId);
+                    if (currentItem == null && offlineBookmark != null) {
+                        for (EpisodesListResponse.EpisodeItem item : episodeItems) {
+                            if (item.getNumber() != null && item.getNumber().equals(offlineBookmark.getEpisodeNumber())) {
+                                currentItem = item;
+                                break;
+                            }
+                            if (item.getId() == offlineBookmark.getEpisodeId()) {
+                                currentItem = item;
+                                break;
+                            }
                         }
                     }
 
                     if (currentItem == null && !episodeItems.isEmpty()) {
                         currentItem = episodeItems.get(0);
-                    }
-
-                    com.example.animelib.data.entity.OfflineBookmarkEntity offlineBookmark = databaseManager.getOfflineBookmarkSync(animeId);
-                    if (offlineBookmark != null) {
-                        EpisodesListResponse.EpisodeItem bookmarkedItem = null;
-                        for (EpisodesListResponse.EpisodeItem item : episodeItems) {
-                            if (item.getNumber() != null && item.getNumber().equals(offlineBookmark.getEpisodeNumber())) {
-                                bookmarkedItem = item;
-                                break;
-                            }
-                            if (item.getId() == offlineBookmark.getEpisodeId()) {
-                                bookmarkedItem = item;
-                                break;
-                            }
-                        }
-                        if (bookmarkedItem != null && (epNumber == null || epNumber.isEmpty())) {
-                            currentItem = bookmarkedItem;
-                        }
                     }
 
                     final List<EpisodesListResponse.EpisodeItem> finalItems = episodeItems;
@@ -3952,7 +3974,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
                                 if (isCurrentBookmarked) {
                                     updateBookmarkButtonColor(true);
-                                    if (offlineBookmark.getPositionMs() > 0 && player != null) {
+                                    if (offlineBookmark.getPositionMs() > 0 && player != null && isFirstOfflineLaunch) {
                                         player.seekTo(offlineBookmark.getPositionMs());
                                         Log.d("VideoPlayer", "Seeked player to offline bookmark position: " + offlineBookmark.getPositionMs() + "ms");
                                     }
@@ -3964,6 +3986,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                             }
                             episodesManager.updateEpisodeNavigationButtonsVisibility();
                         }
+                        isFirstOfflineLaunch = false;
                         if (episodesMenuButton != null) {
                             boolean isPortrait = getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT;
                             episodesMenuButton.setEnabled(true);
