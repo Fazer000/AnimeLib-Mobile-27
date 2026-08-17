@@ -674,6 +674,7 @@ public class DownloadsActivity extends AppCompatActivity implements DownloadServ
             holder.tvEpisodeBadge.setText(getEpisodeBadgeText(epCount));
             if (holder.tvSizeBadge != null) {
                 holder.tvSizeBadge.setText(formatFileSize(totalBytes));
+                holder.tvSizeBadge.setVisibility(View.VISIBLE);
             }
 
             View.OnClickListener playListener = v -> playFirstEpisode(anime);
@@ -700,8 +701,8 @@ public class DownloadsActivity extends AppCompatActivity implements DownloadServ
             popupWindow.setElevation(dpToPx(12));
             popupWindow.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
 
-            TextView itemPlay = popupView.findViewById(R.id.item_option_play);
-            TextView itemDelete = popupView.findViewById(R.id.item_option_delete);
+            View itemPlay = popupView.findViewById(R.id.item_option_play);
+            View itemDelete = popupView.findViewById(R.id.item_option_delete);
 
             itemPlay.setOnClickListener(v -> {
                 popupWindow.dismiss();
