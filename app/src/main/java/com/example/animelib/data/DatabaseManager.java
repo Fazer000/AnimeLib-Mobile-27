@@ -612,6 +612,10 @@ public class DatabaseManager {
         return db.downloadedAnimeDao().getAllDownloadedAnimeLiveData();
     }
 
+    public com.example.animelib.data.entity.DownloadedAnimeEntity getDownloadedAnimeSync(String animeId) {
+        return db.downloadedAnimeDao().getAnimeByIdSync(animeId);
+    }
+
     public androidx.lifecycle.LiveData<java.util.List<com.example.animelib.data.entity.DownloadedEpisodeEntity>> getEpisodesForAnimeLiveData(String animeId) {
         return db.downloadedAnimeDao().getEpisodesForAnimeLiveData(animeId);
     }

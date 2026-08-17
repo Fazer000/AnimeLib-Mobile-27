@@ -539,18 +539,29 @@ public class DownloadsActivity extends AppCompatActivity implements DownloadServ
         }
 
         String posterUrl = anime.getPosterUrl();
+        boolean needsTitle = anime.getTitle() == null || anime.getTitle().equals("Аниме") ||
+                anime.getTitle().equals("Загрузка") || anime.getTitle().startsWith("Аниме #");
+
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
                 String url = posterUrl;
-                if (url == null || url.trim().isEmpty() || !url.startsWith("http")) {
+                if (needsTitle || url == null || url.trim().isEmpty() || !url.startsWith("http")) {
                     final String[] fetchedCover = new String[1];
+                    final String[] fetchedTitle = new String[1];
                     CountDownLatch latch = new CountDownLatch(1);
                     ApiService apiService = new ApiService(this);
                     apiService.fetchAnimeInfo(anime.getAnimeId(), new ApiService.AnimeInfoCallback() {
                         @Override
                         public void onAnimeInfoReceived(AnimeInfoResponse response) {
-                            if (response != null && response.getData() != null && response.getData().getCover() != null) {
-                                fetchedCover[0] = response.getData().getCover().getDefaultUrl();
+                            if (response != null && response.getData() != null) {
+                                if (response.getData().getCover() != null) {
+                                    fetchedCover[0] = response.getData().getCover().getDefaultUrl();
+                                }
+                                if (response.getData().getRus_name() != null && !response.getData().getRus_name().trim().isEmpty()) {
+                                    fetchedTitle[0] = response.getData().getRus_name().trim();
+                                } else if (response.getData().getName() != null && !response.getData().getName().trim().isEmpty()) {
+                                    fetchedTitle[0] = response.getData().getName().trim();
+                                }
                             }
                             latch.countDown();
                         }
@@ -563,6 +574,13 @@ public class DownloadsActivity extends AppCompatActivity implements DownloadServ
                     latch.await(5, TimeUnit.SECONDS);
                     if (fetchedCover[0] != null && !fetchedCover[0].trim().isEmpty()) {
                         url = fetchedCover[0];
+                    }
+                    if (fetchedTitle[0] != null && !fetchedTitle[0].trim().isEmpty()) {
+                        anime.setTitle(fetchedTitle[0]);
+                        databaseManager.saveDownloadedAnime(anime);
+                        runOnUiThread(() -> {
+                            if (animeAdapter != null) animeAdapter.notifyDataSetChanged();
+                        });
                     }
                 }
 

@@ -267,6 +267,10 @@ public class DownloadService extends Service {
                         "Все выбранные серии (" + completedCount + ") успешно скачаны");
             }
 
+            synchronized (activeTaskItems) {
+                activeTaskItems.clear();
+            }
+
             notifyQueueUpdated();
             stopAfterResult();
             if (listener != null) {
@@ -282,19 +286,31 @@ public class DownloadService extends Service {
         currentProgressItem = null;
         synchronized (activeTaskItems) {
             for (TaskProgressItem item : activeTaskItems) {
-                if (item.task.getEpisodeId() == task.getEpisodeId() &&
-                    item.task.getTeamName().equals(task.getTeamName()) &&
-                    item.status == TaskProgressItem.STATUS_WAITING) {
+                boolean isSameTask = (item.task == task) ||
+                        (item.task.getEpisodeId() == task.getEpisodeId() &&
+                         java.util.Objects.equals(item.task.getTeamName(), task.getTeamName()) &&
+                         java.util.Objects.equals(item.task.getQuality(), task.getQuality()));
+                if (isSameTask && (item.status == TaskProgressItem.STATUS_WAITING || item.status == TaskProgressItem.STATUS_DOWNLOADING)) {
                     item.status = TaskProgressItem.STATUS_DOWNLOADING;
                     item.percent = 0;
                     currentProgressItem = item;
                     break;
                 }
             }
+            if (currentProgressItem == null) {
+                for (TaskProgressItem item : activeTaskItems) {
+                    if (item.status == TaskProgressItem.STATUS_WAITING) {
+                        item.status = TaskProgressItem.STATUS_DOWNLOADING;
+                        item.percent = 0;
+                        currentProgressItem = item;
+                        break;
+                    }
+                }
+            }
         }
         notifyQueueUpdated();
 
-        String taskTitle = task.getAnimeTitle() + " - Серия " + task.getEpisodeNumber();
+        String taskTitle = (task.getAnimeTitle() != null ? task.getAnimeTitle() : "Аниме") + " - Серия " + task.getEpisodeNumber();
         startForegroundCompat(PROGRESS_NOTIFICATION_ID, buildProgressNotification(taskTitle, 0));
 
         final long[] lastNotifTime = new long[1];
@@ -303,6 +319,16 @@ public class DownloadService extends Service {
             @Override
             public void onProgress(int percent) {
                 currentTaskPercent = percent;
+                if (currentProgressItem == null) {
+                    synchronized (activeTaskItems) {
+                        for (TaskProgressItem item : activeTaskItems) {
+                            if (item.status == TaskProgressItem.STATUS_DOWNLOADING) {
+                                currentProgressItem = item;
+                                break;
+                            }
+                        }
+                    }
+                }
                 if (currentProgressItem != null) {
                     currentProgressItem.percent = percent;
                 }

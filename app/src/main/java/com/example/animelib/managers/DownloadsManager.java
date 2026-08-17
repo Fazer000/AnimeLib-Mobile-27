@@ -14,6 +14,7 @@ import com.example.animelib.models.EpisodeResponse;
 import com.example.animelib.models.KodikResponse;
 import com.example.animelib.ui.VideoUrlHelper;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -103,6 +104,7 @@ public class DownloadsManager {
         cancelled = false;
 
         executor.execute(() -> {
+            resolveTaskTitleAndPosterIfNeeded(task);
             File outputFile = null;
             int maxRetries = 5;
             int attempt = 0;
@@ -825,6 +827,97 @@ public class DownloadsManager {
             Log.e(TAG, "Failed to download poster image: " + e.getMessage());
         }
         return posterUrl;
+    }
+
+    private void resolveTaskTitleAndPosterIfNeeded(DownloadTask task) {
+        if (task == null || task.getAnimeId() == null) return;
+
+        boolean titleIsPlaceholder = isPlaceholderTitle(task.getAnimeTitle());
+        boolean posterIsPlaceholder = isPlaceholderUrl(task.getPosterUrl());
+
+        if (!titleIsPlaceholder && !posterIsPlaceholder) {
+            return;
+        }
+
+        // 1. Try Room Database first
+        try {
+            DownloadedAnimeEntity existing = databaseManager.getDownloadedAnimeSync(task.getAnimeId());
+            if (existing != null) {
+                if (titleIsPlaceholder && !isPlaceholderTitle(existing.getTitle())) {
+                    task.setAnimeTitle(existing.getTitle());
+                    titleIsPlaceholder = false;
+                }
+                if (posterIsPlaceholder && !isPlaceholderUrl(existing.getPosterUrl())) {
+                    task.setPosterUrl(existing.getPosterUrl());
+                    posterIsPlaceholder = false;
+                }
+            }
+        } catch (Exception ignored) {}
+
+        if (!titleIsPlaceholder && !posterIsPlaceholder) {
+            return;
+        }
+
+        // 2. Try ApiService HTTP request synchronously
+        try {
+            String url = "https://api.cdnlibs.org/api/anime/" + task.getAnimeId() + "?fields[]=rate";
+            Request request = new Request.Builder().url(url).build();
+            try (Response response = client.newCall(request).execute()) {
+                if (response.isSuccessful() && response.body() != null) {
+                    String jsonStr = response.body().string();
+                    JsonObject json = new Gson().fromJson(jsonStr, JsonObject.class);
+                    if (json != null && json.has("data")) {
+                        JsonObject data = json.getAsJsonObject("data");
+                        if (titleIsPlaceholder) {
+                            String realTitle = null;
+                            if (data.has("rus_name") && !data.get("rus_name").isJsonNull()) {
+                                realTitle = data.get("rus_name").getAsString();
+                            } else if (data.has("name") && !data.get("name").isJsonNull()) {
+                                realTitle = data.get("name").getAsString();
+                            }
+                            if (realTitle != null && !realTitle.trim().isEmpty()) {
+                                task.setAnimeTitle(realTitle.trim());
+                            }
+                        }
+                        if (posterIsPlaceholder) {
+                            String realPoster = null;
+                            if (data.has("poster") && !data.get("poster").isJsonNull()) {
+                                JsonObject posterObj = data.getAsJsonObject("poster");
+                                if (posterObj.has("url") && !posterObj.get("url").isJsonNull()) {
+                                    realPoster = posterObj.get("url").getAsString();
+                                } else if (posterObj.has("main") && !posterObj.get("main").isJsonNull()) {
+                                    realPoster = posterObj.get("main").getAsString();
+                                }
+                            }
+                            if (realPoster != null && !realPoster.trim().isEmpty()) {
+                                task.setPosterUrl(realPoster.trim());
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to resolve real anime title/poster for ID " + task.getAnimeId() + ": " + e.getMessage());
+        }
+    }
+
+    private boolean isPlaceholderTitle(String title) {
+        if (title == null) return true;
+        String t = title.trim();
+        if (t.isEmpty()) return true;
+        if (t.equalsIgnoreCase("Аниме")) return true;
+        if (t.equalsIgnoreCase("Загрузка")) return true;
+        if (t.equalsIgnoreCase("Загрузка...")) return true;
+        if (t.startsWith("Аниме #")) return true;
+        return false;
+    }
+
+    private boolean isPlaceholderUrl(String url) {
+        if (url == null) return true;
+        String u = url.trim();
+        if (u.isEmpty()) return true;
+        if (u.contains("placeholder")) return true;
+        return false;
     }
 
     public void cleanup() {

@@ -31,7 +31,9 @@ public class DownloadTask implements Serializable {
 
     public String getAnimeId() { return animeId; }
     public String getAnimeTitle() { return animeTitle; }
+    public void setAnimeTitle(String animeTitle) { this.animeTitle = animeTitle; }
     public String getPosterUrl() { return posterUrl; }
+    public void setPosterUrl(String posterUrl) { this.posterUrl = posterUrl; }
     public int getEpisodeId() { return episodeId; }
     public String getEpisodeNumber() { return episodeNumber; }
     public String getEpisodeName() { return episodeName; }
