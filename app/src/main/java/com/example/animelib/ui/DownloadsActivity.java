@@ -417,14 +417,14 @@ public class DownloadsActivity extends AppCompatActivity implements DownloadServ
     @Override
     protected void onResume() {
         super.onResume();
-        DownloadService.setQueueProgressListener(this);
+        DownloadService.addQueueProgressListener(this);
         updateQueueSection();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        DownloadService.setQueueProgressListener(null);
+        DownloadService.removeQueueProgressListener(this);
     }
 
     @Override

@@ -141,20 +141,20 @@ public class DownloadProgressBottomSheet extends FlexibleBottomSheetDialogFragme
     @Override
     public void onResume() {
         super.onResume();
-        DownloadService.setQueueProgressListener(this);
+        DownloadService.addQueueProgressListener(this);
         updateProgressData();
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        DownloadService.setQueueProgressListener(null);
+        DownloadService.removeQueueProgressListener(this);
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        DownloadService.setQueueProgressListener(null);
+        DownloadService.removeQueueProgressListener(this);
     }
 
     @Override

@@ -861,7 +861,13 @@ public class DownloadsManager {
         // 2. Try ApiService HTTP request synchronously
         try {
             String url = "https://api.cdnlibs.org/api/anime/" + task.getAnimeId() + "?fields[]=rate";
-            Request request = new Request.Builder().url(url).build();
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("Accept", "*/*")
+                    .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 14; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36")
+                    .addHeader("Referer", "https://anilib.me/")
+                    .addHeader("Site-Id", "5")
+                    .build();
             try (Response response = client.newCall(request).execute()) {
                 if (response.isSuccessful() && response.body() != null) {
                     String jsonStr = response.body().string();
@@ -899,6 +905,17 @@ public class DownloadsManager {
         } catch (Exception e) {
             Log.w(TAG, "Failed to resolve real anime title/poster for ID " + task.getAnimeId() + ": " + e.getMessage());
         }
+
+        if (!isPlaceholderTitle(task.getAnimeTitle()) || !isPlaceholderUrl(task.getPosterUrl())) {
+            try {
+                DownloadedAnimeEntity existing = databaseManager.getDownloadedAnimeSync(task.getAnimeId());
+                if (existing != null) {
+                    if (!isPlaceholderTitle(task.getAnimeTitle())) existing.setTitle(task.getAnimeTitle());
+                    if (!isPlaceholderUrl(task.getPosterUrl())) existing.setPosterUrl(task.getPosterUrl());
+                    databaseManager.saveDownloadedAnime(existing);
+                }
+            } catch (Exception ignored) {}
+        }
     }
 
     private boolean isPlaceholderTitle(String title) {
@@ -909,6 +926,7 @@ public class DownloadsManager {
         if (t.equalsIgnoreCase("Загрузка")) return true;
         if (t.equalsIgnoreCase("Загрузка...")) return true;
         if (t.startsWith("Аниме #")) return true;
+        if (t.contains("Маг Целитель")) return true;
         return false;
     }
 

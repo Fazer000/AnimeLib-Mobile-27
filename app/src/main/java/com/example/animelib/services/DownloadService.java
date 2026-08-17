@@ -61,7 +61,7 @@ public class DownloadService extends Service {
     }
 
     private static volatile ProgressListener listener;
-    private static volatile QueueProgressListener queueProgressListener;
+    private static final List<QueueProgressListener> queueProgressListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
     private static volatile boolean running;
     private static volatile int currentTaskIndex;
     private static volatile int totalTasks;
@@ -69,8 +69,22 @@ public class DownloadService extends Service {
 
     private static final List<TaskProgressItem> activeTaskItems = java.util.Collections.synchronizedList(new ArrayList<>());
 
+    public static void addQueueProgressListener(QueueProgressListener listener) {
+        if (listener != null && !queueProgressListeners.contains(listener)) {
+            queueProgressListeners.add(listener);
+        }
+    }
+
+    public static void removeQueueProgressListener(QueueProgressListener listener) {
+        if (listener != null) {
+            queueProgressListeners.remove(listener);
+        }
+    }
+
     public static void setQueueProgressListener(QueueProgressListener listener) {
-        queueProgressListener = listener;
+        if (listener != null) {
+            addQueueProgressListener(listener);
+        }
     }
 
     public static List<TaskProgressItem> getActiveTaskItems() {
@@ -103,8 +117,10 @@ public class DownloadService extends Service {
         synchronized (activeTaskItems) {
             activeTaskItems.clear();
         }
-        if (queueProgressListener != null) {
-            queueProgressListener.onQueueUpdated();
+        for (QueueProgressListener ql : queueProgressListeners) {
+            try {
+                ql.onQueueUpdated();
+            } catch (Exception ignored) {}
         }
     }
 
@@ -229,9 +245,10 @@ public class DownloadService extends Service {
     private TaskProgressItem currentProgressItem;
 
     private void notifyQueueUpdated() {
-        QueueProgressListener ql = queueProgressListener;
-        if (ql != null) {
-            ql.onQueueUpdated();
+        for (QueueProgressListener ql : queueProgressListeners) {
+            try {
+                ql.onQueueUpdated();
+            } catch (Exception ignored) {}
         }
     }
 
@@ -319,18 +336,13 @@ public class DownloadService extends Service {
             @Override
             public void onProgress(int percent) {
                 currentTaskPercent = percent;
-                if (currentProgressItem == null) {
-                    synchronized (activeTaskItems) {
-                        for (TaskProgressItem item : activeTaskItems) {
-                            if (item.status == TaskProgressItem.STATUS_DOWNLOADING) {
-                                currentProgressItem = item;
-                                break;
-                            }
+                synchronized (activeTaskItems) {
+                    for (TaskProgressItem item : activeTaskItems) {
+                        if (item.status == TaskProgressItem.STATUS_DOWNLOADING) {
+                            item.percent = percent;
+                            break;
                         }
                     }
-                }
-                if (currentProgressItem != null) {
-                    currentProgressItem.percent = percent;
                 }
                 notifyQueueUpdated();
                 long now = System.currentTimeMillis();

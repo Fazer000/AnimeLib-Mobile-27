@@ -4122,7 +4122,19 @@ public class VideoPlayerActivity extends AppCompatActivity {
             return;
         }
 
-        String title = animeTitleView != null ? animeTitleView.getText().toString() : "Аниме";
+        String title = null;
+        if (animeTitleView != null && !Boolean.TRUE.equals(animeTitleView.getTag(R.id.tag_skeleton_active))) {
+            String viewTxt = animeTitleView.getText().toString();
+            if (viewTxt != null && !viewTxt.isEmpty() && !viewTxt.equalsIgnoreCase("Загрузка...") && !viewTxt.contains("Маг Целитель")) {
+                title = viewTxt;
+            }
+        }
+        if ((title == null || title.isEmpty() || title.equalsIgnoreCase("Аниме") || title.contains("Маг Целитель")) && getIntent() != null) {
+            title = getIntent().getStringExtra("EXTRA_ANIME_TITLE");
+        }
+        if (title == null || title.isEmpty() || title.equalsIgnoreCase("Загрузка...") || title.contains("Маг Целитель")) {
+            title = "Аниме";
+        }
 
         com.example.animelib.ui.DownloadBottomSheet bottomSheet = com.example.animelib.ui.DownloadBottomSheet.newInstance(
                 currentAnimeId,
