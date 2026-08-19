@@ -96,6 +96,13 @@
                 app:show_shuffle_button="false"
                 app:show_subtitle_button="false" />
 
+            <!-- Debanding Overlay Filter -->
+            <com.example.animelib.ui.DebandingOverlayView
+                android:id="@+id/debandingOverlayView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+
             <!-- Swipe seek preview -->
             <TextView
                 android:id="@+id/seekPreviewText"

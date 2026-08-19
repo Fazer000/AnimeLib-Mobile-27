@@ -34,7 +34,9 @@ import com.example.animelib.util.MediaCacheManager;
  */
 public class AmbientLightManager {
     private static final String TAG = "AmbientLightManager";
-    private static final long SYNC_THRESHOLD_MS = 300; // Допустимый рассинхрон перед подтяжкой кадра
+    private static final long HARD_SEEK_THRESHOLD_MS = 1200; // Жёсткая подгонка кадра через seekTo только при разрыве >1.2с
+    private static final long SPEED_ADJUST_MIN_DELTA_MS = 15; // Минимальный порог подстройки скорости (sub-frame sync)
+    private static final long SYNC_INTERVAL_MS = 150; // Высокочастотный плавный цикл синхронизации (150 мс)
 
     private final Context context;
     private final PlayerView mainPlayerView;
@@ -62,9 +64,9 @@ public class AmbientLightManager {
     private final Runnable syncRunnable = new Runnable() {
         @Override
         public void run() {
-            syncPositionIfNeeded();
+            syncPositionAndSpeed();
             if (isEnabled && !isSuspended && !isFrozen && mainPlayer != null && mainPlayer.isPlaying() && !isErrorState) {
-                mainHandler.postDelayed(this, 1000);
+                mainHandler.postDelayed(this, SYNC_INTERVAL_MS);
             }
         }
     };
@@ -315,14 +317,13 @@ public class AmbientLightManager {
             @Override
             public void onIsPlayingChanged(boolean isPlaying) {
                 if (!isEnabled || isSuspended || isFrozen || ambientPlayer == null || isErrorState) return;
+                mainHandler.removeCallbacks(syncRunnable);
                 if (isPlaying) {
-                    syncPositionIfNeeded();
+                    syncPositionAndSpeed();
                     ambientPlayer.play();
-                    mainHandler.removeCallbacks(syncRunnable);
                     mainHandler.post(syncRunnable);
                 } else {
                     ambientPlayer.pause();
-                    mainHandler.removeCallbacks(syncRunnable);
                 }
             }
 
@@ -333,8 +334,14 @@ public class AmbientLightManager {
                     if (!isPrepared) {
                         prepareAmbientMedia();
                     } else {
-                        syncPositionIfNeeded();
+                        syncPositionAndSpeed();
+                        if (mainPlayer.isPlaying() && !ambientPlayer.isPlaying()) {
+                            ambientPlayer.play();
+                        }
                     }
+                } else if (playbackState == Player.STATE_BUFFERING) {
+                    // Пауза подсветки, пока главный плеер буферизирует
+                    ambientPlayer.pause();
                 }
             }
 
@@ -342,12 +349,13 @@ public class AmbientLightManager {
             public void onPositionDiscontinuity(Player.PositionInfo oldPosition, Player.PositionInfo newPosition, int reason) {
                 if (!isEnabled || isSuspended || isFrozen || ambientPlayer == null || isErrorState) return;
                 ambientPlayer.seekTo(mainPlayer.getCurrentPosition());
+                syncPositionAndSpeed();
             }
 
             @Override
             public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
                 if (!isEnabled || isSuspended || isFrozen || ambientPlayer == null || isErrorState) return;
-                ambientPlayer.setPlaybackParameters(playbackParameters);
+                syncPositionAndSpeed();
             }
         };
 
@@ -372,15 +380,59 @@ public class AmbientLightManager {
         ambientPlayer.addListener(ambientPlayerListener);
     }
 
-    private void syncPositionIfNeeded() {
+    private void syncPositionAndSpeed() {
         if (!isEnabled || isSuspended || isFrozen || mainPlayer == null || ambientPlayer == null || isErrorState) return;
         try {
+            if (!mainPlayer.isPlaying()) {
+                if (ambientPlayer.isPlaying()) {
+                    ambientPlayer.pause();
+                }
+                return;
+            }
+
+            int mainState = mainPlayer.getPlaybackState();
+            if (mainState == Player.STATE_BUFFERING) {
+                if (ambientPlayer.isPlaying()) {
+                    ambientPlayer.pause();
+                }
+                return;
+            } else if (mainState == Player.STATE_READY && !ambientPlayer.isPlaying()) {
+                ambientPlayer.play();
+            }
+
             long mainPos = mainPlayer.getCurrentPosition();
             long ambientPos = ambientPlayer.getCurrentPosition();
-            if (Math.abs(mainPos - ambientPos) > SYNC_THRESHOLD_MS) {
+            long deltaMs = mainPos - ambientPos;
+
+            float mainSpeed = mainPlayer.getPlaybackParameters().speed;
+            if (mainSpeed <= 0.1f) mainSpeed = 1.0f;
+
+            if (Math.abs(deltaMs) > HARD_SEEK_THRESHOLD_MS) {
                 ambientPlayer.seekTo(mainPos);
+                ambientPlayer.setPlaybackParameters(new PlaybackParameters(mainSpeed));
+            } else if (Math.abs(deltaMs) > SPEED_ADJUST_MIN_DELTA_MS) {
+                // Бесшовное динамическое микро-выравнивание скорости воспроизведения (NTP-Style)
+                // Без рестартов, скачков и фризов декодера!
+                float adjustFactor;
+                if (deltaMs > 0) {
+                    // ambientPlayer отстает от главного -> плавно ускоряем на 1..15%
+                    adjustFactor = 1.0f + Math.min(0.15f, (deltaMs / 400.0f) * 0.08f);
+                } else {
+                    // ambientPlayer ушел вперед главного -> плавно замедляем на 1..15%
+                    adjustFactor = 1.0f - Math.min(0.15f, (Math.abs(deltaMs) / 400.0f) * 0.08f);
+                }
+                float targetSpeed = mainSpeed * adjustFactor;
+                ambientPlayer.setPlaybackParameters(new PlaybackParameters(targetSpeed));
+            } else {
+                // Идеальная субкадровая синхронизация (< 15 мс)
+                PlaybackParameters currentParams = ambientPlayer.getPlaybackParameters();
+                if (Math.abs(currentParams.speed - mainSpeed) > 0.001f) {
+                    ambientPlayer.setPlaybackParameters(new PlaybackParameters(mainSpeed));
+                }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            Log.e(TAG, "Error in syncPositionAndSpeed", e);
+        }
     }
 
     private void syncWithMainPlayerState() {

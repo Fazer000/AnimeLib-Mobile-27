@@ -1024,6 +1024,14 @@ public class ApiService {
     public boolean loadAmbientLightSetting() {
         return databaseManager.loadAmbientLightSetting();
     }
+
+    public void saveDebandingSetting(boolean enableDebanding) {
+        databaseManager.saveDebandingSetting(enableDebanding);
+    }
+
+    public boolean loadDebandingSetting() {
+        return databaseManager.loadDebandingSetting();
+    }
     
     public void saveSurroundSoundSetting(boolean enableSurroundSound) {
         databaseManager.saveSurroundSoundSetting(enableSurroundSound);

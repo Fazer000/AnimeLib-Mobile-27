@@ -51,6 +51,8 @@ public class SettingsBottomSheet extends FlexibleBottomSheetDialog {
     private final On4KToggledListener on4KToggledListener;
     private boolean enableAmbientLight = false;
     private final OnAmbientLightToggledListener onAmbientLightToggledListener;
+    private boolean enableDebanding = false;
+    private OnDebandingToggledListener onDebandingToggledListener;
     private boolean enableSurroundSound = true;
     private int surroundMode = 0;
     private float surroundSpatialWidth = 1.0f;
@@ -257,6 +259,22 @@ public class SettingsBottomSheet extends FlexibleBottomSheetDialog {
                 onAmbientLightToggledListener.onAmbientLightToggled(isChecked);
             }
         });
+
+        // Debanding option
+        LinearLayout debandingOption = view.findViewById(R.id.debandingOption);
+        MaterialSwitch debandingSwitch = view.findViewById(R.id.debandingSwitch);
+        if (debandingSwitch != null) {
+            debandingSwitch.setChecked(enableDebanding);
+        }
+        if (debandingOption != null && debandingSwitch != null) {
+            debandingOption.setOnClickListener(v -> debandingSwitch.setChecked(!debandingSwitch.isChecked()));
+            debandingSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                enableDebanding = isChecked;
+                if (onDebandingToggledListener != null) {
+                    onDebandingToggledListener.onDebandingToggled(isChecked);
+                }
+            });
+        }
 
         // Surround sound option click (opens 3D Surround Sound settings sheet)
         if (surroundSoundOption != null && surroundSoundSwitch != null) {
@@ -540,6 +558,19 @@ public class SettingsBottomSheet extends FlexibleBottomSheetDialog {
 
     public interface OnAmbientLightToggledListener {
         void onAmbientLightToggled(boolean enabled);
+    }
+
+    public interface OnDebandingToggledListener {
+        void onDebandingToggled(boolean enabled);
+    }
+
+    public void setDebanding(boolean enableDebanding, OnDebandingToggledListener listener) {
+        this.enableDebanding = enableDebanding;
+        this.onDebandingToggledListener = listener;
+        MaterialSwitch debandingSwitch = findViewById(R.id.debandingSwitch);
+        if (debandingSwitch != null) {
+            debandingSwitch.setChecked(enableDebanding);
+        }
     }
 
     public interface OnSurroundSoundToggledListener {

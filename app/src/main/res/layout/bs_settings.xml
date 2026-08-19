@@ -209,6 +209,7 @@
             </LinearLayout>
 
             <!-- SWITCHES SECTION -->
+            <!-- Subtitles Option -->
             <LinearLayout
                 android:id="@+id/subtitlesOption"
                 android:layout_width="match_parent"
@@ -259,6 +260,79 @@
                     android:checked="true"/>
             </LinearLayout>
 
+            <!-- Ambient Light Option -->
+            <LinearLayout
+                android:id="@+id/ambientLightOption"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="50dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="10dp"
+                android:background="@android:color/transparent">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_light"
+                    app:tint="@color/accent_text_color"
+                    android:layout_marginEnd="12dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Ambient подсветка"
+                    android:textColor="@color/primary_text_color"
+                    android:textSize="16sp"/>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/ambientLightSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    app:trackTint="@color/switch_track_tint"
+                    app:thumbTint="@color/switch_thumb_tint"
+                    android:checked="false"/>
+            </LinearLayout>
+
+            <!-- AutoPlay Option -->
+            <LinearLayout
+                android:id="@+id/autoPlayOption"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="50dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="10dp"
+                android:background="@android:color/transparent">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_player_play"
+                    app:tint="@color/accent_text_color"
+                    android:layout_marginEnd="12dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Автовоспроизведение"
+                    android:textColor="@color/primary_text_color"
+                    android:textSize="16sp"/>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/autoPlaySwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    app:trackTint="@color/switch_track_tint"
+                    app:thumbTint="@color/switch_thumb_tint"
+                    android:checked="true"/>
+            </LinearLayout>
+
+            <!-- Surround Sound Option -->
             <LinearLayout
                 android:id="@+id/surroundSoundOption"
                 android:layout_width="match_parent"
@@ -328,8 +402,9 @@
                     android:checked="true"/>
             </LinearLayout>
 
+            <!-- Debanding Option -->
             <LinearLayout
-                android:id="@+id/autoPlayOption"
+                android:id="@+id/debandingOption"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:minHeight="50dp"
@@ -342,55 +417,33 @@
                 <ImageView
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/ic_player_play"
+                    android:src="@drawable/ic_deband"
                     app:tint="@color/accent_text_color"
                     android:layout_marginEnd="12dp" />
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Автовоспроизведение"
-                    android:textColor="@color/primary_text_color"
-                    android:textSize="16sp"/>
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Дебандинг"
+                        android:textColor="@color/primary_text_color"
+                        android:textSize="16sp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Сглаживание градиентов"
+                        android:textColor="@color/accent_text_color"
+                        android:textSize="12sp"/>
+                </LinearLayout>
 
                 <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/autoPlaySwitch"
-                    android:layout_width="wrap_content"
-                    android:layout_height="30dp"
-                    app:trackTint="@color/switch_track_tint"
-                    app:thumbTint="@color/switch_thumb_tint"
-                    android:checked="true"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/ambientLightOption"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="50dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="10dp"
-                android:background="@android:color/transparent">
-
-                <ImageView
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:src="@drawable/ic_light"
-                    app:tint="@color/accent_text_color"
-                    android:layout_marginEnd="12dp" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Ambient подсветка"
-                    android:textColor="@color/primary_text_color"
-                    android:textSize="16sp"/>
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/ambientLightSwitch"
+                    android:id="@+id/debandingSwitch"
                     android:layout_width="wrap_content"
                     android:layout_height="30dp"
                     app:trackTint="@color/switch_track_tint"
@@ -398,6 +451,7 @@
                     android:checked="false"/>
             </LinearLayout>
 
+            <!-- 4K Option -->
             <LinearLayout
                 android:id="@+id/fourKOption"
                 android:layout_width="match_parent"
@@ -573,7 +627,7 @@
                 android:paddingBottom="12dp"
                 android:textColor="@color/secondary_text_color"
                 android:textSize="13sp"
-                android:text="Версия v1.8.4" />
+                android:text="Версия v1.8.5" />
 
         </LinearLayout>
     </LinearLayout>

@@ -10,6 +10,7 @@ public class AppSettings {
     private String siteUrl;
     private boolean enable4K = false;
     private boolean enableAmbientLight = false;
+    private boolean enableDebanding = false;
     private boolean enableSurroundSound = true;
     private int surroundMode = 0; // 0 = Cinema 3D, 1 = Concert 3D, 2 = Voice 3D, 3 = Classic 5.1, 4 = Extreme 3D
     private float surroundSpatialWidth = 1.0f;
@@ -61,6 +62,14 @@ public class AppSettings {
 
     public void setEnableAmbientLight(boolean enableAmbientLight) {
         this.enableAmbientLight = enableAmbientLight;
+    }
+
+    public boolean isEnableDebanding() {
+        return enableDebanding;
+    }
+
+    public void setEnableDebanding(boolean enableDebanding) {
+        this.enableDebanding = enableDebanding;
     }
 
     public boolean isEnableSurroundSound() {

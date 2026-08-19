@@ -40,7 +40,7 @@ public class UpdateManager {
                 Log.e(TAG, "Error reading package info", e);
             }
         }
-        return "1.8.4";
+        return "1.8.5";
     }
 
     public static void checkForUpdates(Context context, OkHttpClient client, CheckUpdateCallback callback) {

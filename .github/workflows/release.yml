@@ -68,22 +68,15 @@ jobs:
       run: |
         CURRENT_VERSION=$(grep -E 'versionName\s+"[^"]+"' app/build.gradle | sed -E 's/.*versionName\s+"([^"]+)".*/\1/')
         if [ -z "$CURRENT_VERSION" ]; then
-          CURRENT_VERSION="1.0.0"
+          CURRENT_VERSION="1.8.5"
         fi
         echo "Current app versionName in build.gradle: $CURRENT_VERSION"
 
-        IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-        PATCH_NUM=$(echo "$PATCH" | sed -E 's/([^0-9].*|$)//')
-        PATCH_NUM=${PATCH_NUM:-0}
-        NEW_PATCH=$((PATCH_NUM + 1))
-
-        NEW_VERSION_NAME="${MAJOR}.${MINOR}.${NEW_PATCH}"
+        NEW_VERSION_NAME="$CURRENT_VERSION"
         NEW_TAG="v${NEW_VERSION_NAME}"
 
-        echo "New Release Version: $NEW_VERSION_NAME"
-        echo "New Tag: $NEW_TAG"
-
-        sed -i -E "s/versionName \"[^\"]+\"/versionName \"${NEW_VERSION_NAME}\"/" app/build.gradle
+        echo "Release Version: $NEW_VERSION_NAME"
+        echo "Tag: $NEW_TAG"
 
         echo "tag_name=$NEW_TAG" >> $GITHUB_OUTPUT
         echo "version_name=$NEW_VERSION_NAME" >> $GITHUB_OUTPUT

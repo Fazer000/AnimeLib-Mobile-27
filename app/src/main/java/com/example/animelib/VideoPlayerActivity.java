@@ -254,6 +254,10 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private com.example.animelib.ui.AmbientVignetteOverlayView ambientVignetteOverlay;
     private float lastCornerRadiusPx = -1f;
 
+    // Debanding manager
+    private com.example.animelib.managers.DebandingManager debandingManager;
+    private boolean enableDebanding = false;
+
     // Surround sound manager
     private com.example.animelib.managers.SurroundSoundManager surroundSoundManager;
     private boolean enableSurroundSound = true;
@@ -464,6 +468,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
         executor.execute(() -> {
             enable4K = apiService.load4KSetting();
             enableAmbientLight = apiService.loadAmbientLightSetting();
+            enableDebanding = apiService.loadDebandingSetting();
             enableSurroundSound = apiService.loadSurroundSoundSetting();
             surroundMode = apiService.loadSurround3DMode();
             surroundSpatialWidth = apiService.loadSurroundSpatialWidth();
@@ -490,6 +495,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 }
                 if (ambientLightManager != null) {
                     ambientLightManager.setEnabled(enableAmbientLight);
+                }
+                if (debandingManager != null) {
+                    debandingManager.setEnabled(enableDebanding);
                 }
                 if (surroundSoundManager != null) {
                     surroundSoundManager.setEnabled(enableSurroundSound);
@@ -1580,6 +1588,10 @@ public class VideoPlayerActivity extends AppCompatActivity {
         androidx.media3.ui.PlayerView ambientPlayerView = findViewById(R.id.ambientPlayerView);
         com.example.animelib.ui.AmbientVignetteOverlayView ambientVignetteOverlay = findViewById(R.id.ambientVignetteOverlay);
         ambientLightManager = new AmbientLightManager(this, playerView, ambientContainer, ambientPlayerView, ambientVignetteOverlay);
+        
+        // Initialize debanding manager
+        com.example.animelib.ui.DebandingOverlayView debandingOverlayView = findViewById(R.id.debandingOverlayView);
+        debandingManager = new com.example.animelib.managers.DebandingManager(this, playerView, debandingOverlayView);
         
         // Initialize related titles
         initializeRelatedTitles();
@@ -3695,6 +3707,14 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 });
 
         dialog.setOfflineMode(isOfflineMode);
+        dialog.setDebanding(enableDebanding, enabled -> {
+            enableDebanding = enabled;
+            apiService.saveDebandingSetting(enabled);
+            if (debandingManager != null) {
+                debandingManager.setEnabled(enabled);
+            }
+            Log.d("VideoPlayer", "Debanding setting changed to: " + enabled);
+        });
         dialog.setSurround3DSettings(
                 enableSurroundSound,
                 surroundMode,
