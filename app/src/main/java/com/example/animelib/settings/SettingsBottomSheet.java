@@ -81,6 +81,27 @@ public class SettingsBottomSheet extends FlexibleBottomSheetDialog {
     private int subtitleEdgeColor = 0xFF000000;
     private SubtitlesBottomSheet.OnSubtitleStyleChangedListener onSubtitleStyleChangedListener;
 
+    // Video Filters
+    private float filterBrightness = 0f;
+    private float filterContrast = 100f;
+    private float filterSaturation = 100f;
+    private float filterGamma = 1.0f;
+    private float filterHue = 0f;
+    private OnVideoFiltersChangedListener onVideoFiltersChangedListener;
+
+    public interface OnVideoFiltersChangedListener {
+        void onVideoFiltersChanged(float brightness, float contrast, float saturation, float gamma, float hue);
+    }
+
+    public void setVideoFilters(float brightness, float contrast, float saturation, float gamma, float hue, OnVideoFiltersChangedListener listener) {
+        this.filterBrightness = brightness;
+        this.filterContrast = contrast;
+        this.filterSaturation = saturation;
+        this.filterGamma = gamma;
+        this.filterHue = hue;
+        this.onVideoFiltersChangedListener = listener;
+    }
+
     public interface OnSubtitlesSettingsChangedListener {
         void onSubtitlesSettingsChanged(boolean enabled, String format);
     }
@@ -312,6 +333,20 @@ public class SettingsBottomSheet extends FlexibleBottomSheetDialog {
             showSkipDurationDialog();
         });
 
+        // Video Filters option click
+        LinearLayout videoFiltersOption = view.findViewById(R.id.videoFiltersOption);
+        TextView currentVideoFiltersText = view.findViewById(R.id.currentVideoFiltersText);
+        if (currentVideoFiltersText != null) {
+            boolean isModified = (filterBrightness != 0f || filterContrast != 100f || filterSaturation != 100f || filterGamma != 1.0f || filterHue != 0f);
+            currentVideoFiltersText.setText(isModified ? "Настроено" : "По умолчанию");
+        }
+        if (videoFiltersOption != null) {
+            videoFiltersOption.setOnClickListener(v -> {
+                dismiss();
+                showVideoFiltersDialog();
+            });
+        }
+
         // Theme option click
         themeOption.setOnClickListener(v -> {
             dismiss();
@@ -490,6 +525,37 @@ public class SettingsBottomSheet extends FlexibleBottomSheetDialog {
         // Show main settings when back button is pressed
         dialog.setOnBackPressedListener(this::show);
 
+        dialog.show();
+    }
+
+    private void showVideoFiltersDialog() {
+        VideoFiltersBottomSheet dialog = new VideoFiltersBottomSheet(
+            getContext(),
+            filterBrightness,
+            filterContrast,
+            filterSaturation,
+            filterGamma,
+            filterHue,
+            (b, c, s, g, h) -> {
+                filterBrightness = b;
+                filterContrast = c;
+                filterSaturation = s;
+                filterGamma = g;
+                filterHue = h;
+
+                TextView currentVideoFiltersText = findViewById(R.id.currentVideoFiltersText);
+                if (currentVideoFiltersText != null) {
+                    boolean isModified = (b != 0f || c != 100f || s != 100f || g != 1.0f || h != 0f);
+                    currentVideoFiltersText.setText(isModified ? "Настроено" : "По умолчанию");
+                }
+
+                if (onVideoFiltersChangedListener != null) {
+                    onVideoFiltersChangedListener.onVideoFiltersChanged(b, c, s, g, h);
+                }
+            }
+        );
+
+        dialog.setOnBackPressedListener(this::show);
         dialog.show();
     }
 

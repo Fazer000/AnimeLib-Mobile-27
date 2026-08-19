@@ -1032,6 +1032,14 @@ public class ApiService {
     public boolean loadDebandingSetting() {
         return databaseManager.loadDebandingSetting();
     }
+
+    public void saveVideoFilters(float brightness, float contrast, float saturation, float gamma, float hue) {
+        databaseManager.saveVideoFilters(brightness, contrast, saturation, gamma, hue);
+    }
+
+    public float[] loadVideoFilters() {
+        return databaseManager.loadVideoFilters();
+    }
     
     public void saveSurroundSoundSetting(boolean enableSurroundSound) {
         databaseManager.saveSurroundSoundSetting(enableSurroundSound);

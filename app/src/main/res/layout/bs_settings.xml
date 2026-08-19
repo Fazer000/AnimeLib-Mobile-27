@@ -489,6 +489,44 @@
 
             <!-- STANDARD ITEMS IN Дополнительно -->
             <LinearLayout
+                android:id="@+id/videoFiltersOption"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="50dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="14dp"
+                android:background="@android:color/transparent"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_tune_sliders"
+                    app:tint="@color/accent_text_color"
+                    android:layout_marginEnd="12dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Фильтры"
+                    android:textColor="@color/primary_text_color"
+                    android:textSize="16sp"/>
+
+                <TextView
+                    android:id="@+id/currentVideoFiltersText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/accent_text_color"
+                    android:textSize="14sp"
+                    android:text="По умолчанию"/>
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/skipDurationOption"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

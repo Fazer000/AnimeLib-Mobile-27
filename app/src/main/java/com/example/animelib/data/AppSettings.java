@@ -28,6 +28,12 @@ public class AppSettings {
     private int subtitleEdgeType = 1; // 1 = OUTLINE, 2 = DROP_SHADOW, 0 = NONE
     private int subtitleEdgeColor = 0xFF000000; // Black
 
+    private float filterBrightness = 0f;
+    private float filterContrast = 100f;
+    private float filterSaturation = 100f;
+    private float filterGamma = 1.0f;
+    private float filterHue = 0f;
+
     public AppSettings() {
     }
 
@@ -199,4 +205,19 @@ public class AppSettings {
     public void setSubtitleEdgeColor(int subtitleEdgeColor) {
         this.subtitleEdgeColor = subtitleEdgeColor;
     }
+
+    public float getFilterBrightness() { return filterBrightness; }
+    public void setFilterBrightness(float filterBrightness) { this.filterBrightness = filterBrightness; }
+
+    public float getFilterContrast() { return filterContrast > 0 ? filterContrast : 100f; }
+    public void setFilterContrast(float filterContrast) { this.filterContrast = filterContrast; }
+
+    public float getFilterSaturation() { return filterSaturation >= 0 ? filterSaturation : 100f; }
+    public void setFilterSaturation(float filterSaturation) { this.filterSaturation = filterSaturation; }
+
+    public float getFilterGamma() { return filterGamma > 0 ? filterGamma : 1.0f; }
+    public void setFilterGamma(float filterGamma) { this.filterGamma = filterGamma; }
+
+    public float getFilterHue() { return filterHue; }
+    public void setFilterHue(float filterHue) { this.filterHue = filterHue; }
 }

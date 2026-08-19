@@ -258,6 +258,14 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private com.example.animelib.managers.DebandingManager debandingManager;
     private boolean enableDebanding = false;
 
+    // Video filters manager
+    private com.example.animelib.managers.VideoFiltersManager videoFiltersManager;
+    private float filterBrightness = 0f;
+    private float filterContrast = 100f;
+    private float filterSaturation = 100f;
+    private float filterGamma = 1.0f;
+    private float filterHue = 0f;
+
     // Surround sound manager
     private com.example.animelib.managers.SurroundSoundManager surroundSoundManager;
     private boolean enableSurroundSound = true;
@@ -487,6 +495,14 @@ public class VideoPlayerActivity extends AppCompatActivity {
             subtitleBackgroundColor = apiService.loadSubtitleBackgroundColorSetting();
             subtitleEdgeType = apiService.loadSubtitleEdgeTypeSetting();
             subtitleEdgeColor = apiService.loadSubtitleEdgeColorSetting();
+            float[] filters = apiService.loadVideoFilters();
+            if (filters != null && filters.length >= 5) {
+                filterBrightness = filters[0];
+                filterContrast = filters[1];
+                filterSaturation = filters[2];
+                filterGamma = filters[3];
+                filterHue = filters[4];
+            }
             Log.d("VideoPlayer", "Loaded settings - 4K: " + enable4K + ", AmbientLight: " + enableAmbientLight + ", SurroundSound: " + enableSurroundSound + " (mode=" + surroundMode + "), AutoPlay: " + autoPlay + ", SkipDuration: " + longSkipDuration + ", Theme: " + currentTheme + ", Subtitles: " + subtitlesEnabled + " (" + subtitleFormat + ")");
 
             runOnUiThread(() -> {
@@ -498,6 +514,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 }
                 if (debandingManager != null) {
                     debandingManager.setEnabled(enableDebanding);
+                }
+                if (videoFiltersManager != null) {
+                    videoFiltersManager.setFilters(filterBrightness, filterContrast, filterSaturation, filterGamma, filterHue);
                 }
                 if (surroundSoundManager != null) {
                     surroundSoundManager.setEnabled(enableSurroundSound);
@@ -1592,6 +1611,12 @@ public class VideoPlayerActivity extends AppCompatActivity {
         // Initialize debanding manager
         com.example.animelib.ui.DebandingOverlayView debandingOverlayView = findViewById(R.id.debandingOverlayView);
         debandingManager = new com.example.animelib.managers.DebandingManager(this, playerView, debandingOverlayView);
+
+        // Initialize video filters manager
+        videoFiltersManager = new com.example.animelib.managers.VideoFiltersManager(this, playerView);
+        if (videoFiltersManager != null) {
+            videoFiltersManager.setFilters(filterBrightness, filterContrast, filterSaturation, filterGamma, filterHue);
+        }
         
         // Initialize related titles
         initializeRelatedTitles();
@@ -3707,6 +3732,19 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 });
 
         dialog.setOfflineMode(isOfflineMode);
+        dialog.setVideoFilters(filterBrightness, filterContrast, filterSaturation, filterGamma, filterHue,
+                (b, c, s, g, h) -> {
+                    filterBrightness = b;
+                    filterContrast = c;
+                    filterSaturation = s;
+                    filterGamma = g;
+                    filterHue = h;
+                    apiService.saveVideoFilters(b, c, s, g, h);
+                    if (videoFiltersManager != null) {
+                        videoFiltersManager.setFilters(b, c, s, g, h);
+                    }
+                    Log.d("VideoPlayer", "Video filters changed: b=" + b + ", c=" + c + ", s=" + s + ", g=" + g + ", h=" + h);
+                });
         dialog.setDebanding(enableDebanding, enabled -> {
             enableDebanding = enabled;
             apiService.saveDebandingSetting(enabled);
@@ -3924,8 +3962,13 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
                         // Priority 1: Exact match by localPath
                         if (localPath != null && dep.getLocalFilePath() != null) {
-                            if (localPath.equals(dep.getLocalFilePath()) ||
-                                new java.io.File(localPath).getAbsolutePath().equals(new java.io.File(dep.getLocalFilePath()).getAbsolutePath())) {
+                            String normLocal = localPath.startsWith("file://") ? localPath.substring(7) : localPath;
+                            String normDep = dep.getLocalFilePath().startsWith("file://") ? dep.getLocalFilePath().substring(7) : dep.getLocalFilePath();
+                            java.io.File f1 = new java.io.File(normLocal);
+                            java.io.File f2 = new java.io.File(normDep);
+                            if (normLocal.equalsIgnoreCase(normDep) ||
+                                f1.getAbsolutePath().equalsIgnoreCase(f2.getAbsolutePath()) ||
+                                (f1.getName() != null && f1.getName().equalsIgnoreCase(f2.getName()))) {
                                 currentItem = item;
                             }
                         }
@@ -3940,12 +3983,16 @@ public class VideoPlayerActivity extends AppCompatActivity {
                                     currentItem = item;
                                     break;
                                 }
+                                if (item.getId() == existingCur.getId()) {
+                                    currentItem = item;
+                                    break;
+                                }
                             }
                         }
                     }
 
-                    // Priority 3: Match by intent episode number
-                    if (currentItem == null && intentEpNumber != null && !intentEpNumber.isEmpty()) {
+                    // Priority 3: Match by intent episode number (only on first launch)
+                    if (currentItem == null && isFirstOfflineLaunch && intentEpNumber != null && !intentEpNumber.isEmpty()) {
                         for (EpisodesListResponse.EpisodeItem item : episodeItems) {
                             if (item.getNumber() != null && item.getNumber().equals(intentEpNumber)) {
                                 currentItem = item;
@@ -3954,9 +4001,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
                         }
                     }
 
-                    // Priority 4: Offline bookmark (only if no specific episode selected)
+                    // Priority 4: Offline bookmark (only on first launch)
                     com.example.animelib.data.entity.OfflineBookmarkEntity offlineBookmark = databaseManager.getOfflineBookmarkSync(animeId);
-                    if (currentItem == null && offlineBookmark != null) {
+                    if (currentItem == null && isFirstOfflineLaunch && offlineBookmark != null) {
                         for (EpisodesListResponse.EpisodeItem item : episodeItems) {
                             if (item.getNumber() != null && item.getNumber().equals(offlineBookmark.getEpisodeNumber())) {
                                 currentItem = item;

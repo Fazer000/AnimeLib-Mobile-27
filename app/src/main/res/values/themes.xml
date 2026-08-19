@@ -51,6 +51,7 @@
 
         <item name="logoDrawable">@drawable/ic_logo_non_back_light</item>
         <item name="materialSwitchStyle">@style/Widget.AnimeLIB.MaterialSwitch</item>
+        <item name="sliderStyle">@style/Widget.AnimeLIB.Slider</item>
 
 <!--        <item name="android:fitsSystemWindows">true</item>-->
     </style>
@@ -137,6 +138,18 @@
         <item name="relatedTitleColor">@color/lt_related_title_color</item>
         <item name="relatedSubtitleColor">@color/lt_related_subtitle_color</item>
         <item name="materialSwitchStyle">@style/Widget.AnimeLIB.MaterialSwitch</item>
+        <item name="sliderStyle">@style/Widget.AnimeLIB.Slider</item>
+    </style>
+
+    <!-- Custom Style for Material Slider -->
+    <style name="Widget.AnimeLIB.Slider" parent="Widget.Material3.Slider">
+        <item name="trackHeight">6dp</item>
+        <item name="trackCornerRadius">3dp</item>
+        <item name="thumbColor">@color/purple_primary</item>
+        <item name="trackColorActive">@color/purple_primary</item>
+        <item name="trackColorInactive">@color/purple_alpha_25</item>
+        <item name="haloColor">@color/purple_alpha_10</item>
+        <item name="labelBehavior">gone</item>
     </style>
 
     <!-- Custom Style for MaterialSwitch using brand purple -->

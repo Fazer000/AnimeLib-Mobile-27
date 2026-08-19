@@ -148,6 +148,44 @@ public class DatabaseManager {
         }
     }
 
+    public void saveVideoFilters(float brightness, float contrast, float saturation, float gamma, float hue) {
+        executor.execute(() -> {
+            try {
+                AppSettings settings = db.appSettingsDao().getSettingsSync();
+                if (settings == null) {
+                    settings = new AppSettings();
+                }
+                settings.setFilterBrightness(brightness);
+                settings.setFilterContrast(contrast);
+                settings.setFilterSaturation(saturation);
+                settings.setFilterGamma(gamma);
+                settings.setFilterHue(hue);
+                db.appSettingsDao().upsert(settings);
+                Log.d(TAG, "Saved video filters settings");
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to save video filters settings", e);
+            }
+        });
+    }
+
+    public float[] loadVideoFilters() {
+        try {
+            AppSettings settings = db.appSettingsDao().getSettingsSync();
+            if (settings != null) {
+                return new float[] {
+                    settings.getFilterBrightness(),
+                    settings.getFilterContrast(),
+                    settings.getFilterSaturation(),
+                    settings.getFilterGamma(),
+                    settings.getFilterHue()
+                };
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to load video filters settings", e);
+        }
+        return new float[] { 0f, 100f, 100f, 1.0f, 0f };
+    }
+
     /**
      * Сохраняет настройку объемного звука 5.1
      */
