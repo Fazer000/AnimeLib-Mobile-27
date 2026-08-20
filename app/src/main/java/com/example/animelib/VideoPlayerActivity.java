@@ -1619,9 +1619,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
             ambientPlayerView.setTranslationX(vLeft);
             ambientPlayerView.setTranslationY(vTop);
 
-            // Масштабируем плеер подсветки наружу (1.30x / 1.25x), чтобы края видео распылялись в пустые области (letterbox / pillarbox)
-            ambientPlayerView.setScaleX(1.30f);
-            ambientPlayerView.setScaleY(1.25f);
+            // Масштабируем плеер подсветки аккуратно (1.08x), чтобы только самые крайние пиксели видео (~4% с каждого края) формировали мягкое краевое свечение
+            ambientPlayerView.setScaleX(1.08f);
+            ambientPlayerView.setScaleY(1.08f);
         }
     }
     
