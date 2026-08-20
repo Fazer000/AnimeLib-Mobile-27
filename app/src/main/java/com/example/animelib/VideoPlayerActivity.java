@@ -6746,18 +6746,17 @@ public class VideoPlayerActivity extends AppCompatActivity {
         safeRunOnUiThread(() -> {
             boolean isEnded = (player != null) && (player.getPlaybackState() == Player.STATE_ENDED);
             boolean isPlaying = (player != null) && player.isPlaying();
-            boolean isPausedByUser = (player != null)
-                    && (player.getPlaybackState() == Player.STATE_READY)
-                    && !player.getPlayWhenReady()
-                    && !isSeeking
-                    && !isVideoLoading;
-            boolean isIdleEmpty = (player != null)
-                    && (player.getPlaybackState() == Player.STATE_IDLE)
-                    && (player.getMediaItemCount() == 0)
-                    && !isVideoLoading;
+            boolean isPlayWhenReady = (player != null) && player.getPlayWhenReady();
+            int playbackState = (player != null) ? player.getPlaybackState() : Player.STATE_IDLE;
 
-            boolean isBuffering = !isPlaying && !isPausedByUser && !isEnded && !isIdleEmpty;
+            // Буферизация: состояние STATE_BUFFERING при активном воспроизведении, либо загрузка видео, либо перемотка
+            boolean isBuffering = !isEnded && (
+                    (playbackState == Player.STATE_BUFFERING && isPlayWhenReady)
+                    || isVideoLoading
+                    || (isSeeking && !isPlaying)
+            );
 
+            // Показываем индикатор буферизации поверх плеера/контролов, если не активен полноэкранный loadingOverlay
             boolean showBuffering = isBuffering && (loadingOverlay == null || loadingOverlay.getVisibility() != View.VISIBLE);
 
             // ЕДИНЫЙ индикатор буферизации поверх плеера и контролов
@@ -6766,52 +6765,14 @@ public class VideoPlayerActivity extends AppCompatActivity {
                     playerBufferingIndicator.animate().setListener(null);
                     playerBufferingIndicator.animate().cancel();
                     playerBufferingIndicator.setVisibility(View.VISIBLE);
-                    if (animate && playerBufferingIndicator.getAlpha() < 0.95f) {
-                        playerBufferingIndicator.setAlpha(0f);
-                        playerBufferingIndicator.setScaleX(0.75f);
-                        playerBufferingIndicator.setScaleY(0.75f);
-                        playerBufferingIndicator.animate()
-                                .alpha(1.0f)
-                                .scaleX(1.0f)
-                                .scaleY(1.0f)
-                                .setDuration(200)
-                                .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                                .start();
-                    } else {
-                        playerBufferingIndicator.setAlpha(1.0f);
-                        playerBufferingIndicator.setScaleX(1.0f);
-                        playerBufferingIndicator.setScaleY(1.0f);
-                    }
+                    playerBufferingIndicator.setAlpha(1.0f);
+                    playerBufferingIndicator.setScaleX(1.0f);
+                    playerBufferingIndicator.setScaleY(1.0f);
+                    playerBufferingIndicator.bringToFront();
                 } else {
-                    if (playerBufferingIndicator.getVisibility() == View.VISIBLE) {
-                        playerBufferingIndicator.animate().setListener(null);
-                        playerBufferingIndicator.animate().cancel();
-                        if (animate) {
-                            playerBufferingIndicator.animate()
-                                    .alpha(0.0f)
-                                    .scaleX(0.75f)
-                                    .scaleY(0.75f)
-                                    .setDuration(160)
-                                    .setInterpolator(new android.view.animation.AccelerateInterpolator())
-                                    .setListener(new android.animation.AnimatorListenerAdapter() {
-                                        @Override
-                                        public void onAnimationEnd(android.animation.Animator animation) {
-                                            if (playerBufferingIndicator != null) {
-                                                playerBufferingIndicator.setVisibility(View.GONE);
-                                                playerBufferingIndicator.setAlpha(1.0f);
-                                                playerBufferingIndicator.setScaleX(1.0f);
-                                                playerBufferingIndicator.setScaleY(1.0f);
-                                            }
-                                        }
-                                    })
-                                    .start();
-                        } else {
-                            playerBufferingIndicator.setVisibility(View.GONE);
-                            playerBufferingIndicator.setAlpha(1.0f);
-                            playerBufferingIndicator.setScaleX(1.0f);
-                            playerBufferingIndicator.setScaleY(1.0f);
-                        }
-                    }
+                    playerBufferingIndicator.animate().setListener(null);
+                    playerBufferingIndicator.animate().cancel();
+                    playerBufferingIndicator.setVisibility(View.GONE);
                 }
             }
 
@@ -6824,67 +6785,39 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
             if (play == null || pause == null) return;
 
-            View activeView = isPlaying ? pause : (isBuffering ? null : play);
+            if (showBuffering) {
+                // Во время буферизации скрываем обе кнопки (индикатор крутится поверх в центре)
+                play.animate().cancel();
+                play.animate().setListener(null);
+                play.setVisibility(View.GONE);
 
-            View[] allViews = new View[]{play, pause};
+                pause.animate().cancel();
+                pause.animate().setListener(null);
+                pause.setVisibility(View.GONE);
+            } else if (isPlaying) {
+                // Воспроизведение - показываем кнопку паузы
+                play.animate().cancel();
+                play.animate().setListener(null);
+                play.setVisibility(View.GONE);
 
-            for (View v : allViews) {
-                if (v == null) continue;
-                if (v == activeView) {
-                    v.animate().cancel();
-                    v.animate().setListener(null);
-                    if (v.getVisibility() != View.VISIBLE || v.getAlpha() < 0.95f) {
-                        v.setVisibility(View.VISIBLE);
-                        if (animate) {
-                            v.setAlpha(0f);
-                            v.setScaleX(0.75f);
-                            v.setScaleY(0.75f);
-                            v.animate()
-                                    .alpha(1.0f)
-                                    .scaleX(1.0f)
-                                    .scaleY(1.0f)
-                                    .setDuration(220)
-                                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                                    .start();
-                        } else {
-                            v.setAlpha(1.0f);
-                            v.setScaleX(1.0f);
-                            v.setScaleY(1.0f);
-                        }
-                    }
-                } else {
-                    if (v.getVisibility() == View.VISIBLE && v.getAlpha() > 0.05f) {
-                        v.animate().cancel();
-                        if (animate) {
-                            v.animate()
-                                    .alpha(0.0f)
-                                    .scaleX(0.75f)
-                                    .scaleY(0.75f)
-                                    .setDuration(160)
-                                    .setInterpolator(new android.view.animation.AccelerateInterpolator())
-                                    .setListener(new android.animation.AnimatorListenerAdapter() {
-                                        @Override
-                                        public void onAnimationEnd(android.animation.Animator animation) {
-                                            v.setVisibility(View.GONE);
-                                            v.setScaleX(1.0f);
-                                            v.setScaleY(1.0f);
-                                            v.setAlpha(1.0f);
-                                        }
-                                    })
-                                    .start();
-                        } else {
-                            v.setVisibility(View.GONE);
-                            v.setAlpha(1.0f);
-                            v.setScaleX(1.0f);
-                            v.setScaleY(1.0f);
-                        }
-                    } else if (v.getVisibility() == View.VISIBLE) {
-                        v.setVisibility(View.GONE);
-                        v.setAlpha(1.0f);
-                        v.setScaleX(1.0f);
-                        v.setScaleY(1.0f);
-                    }
-                }
+                pause.animate().cancel();
+                pause.animate().setListener(null);
+                pause.setVisibility(View.VISIBLE);
+                pause.setAlpha(1.0f);
+                pause.setScaleX(1.0f);
+                pause.setScaleY(1.0f);
+            } else {
+                // Пауза - показываем кнопку воспроизведения
+                pause.animate().cancel();
+                pause.animate().setListener(null);
+                pause.setVisibility(View.GONE);
+
+                play.animate().cancel();
+                play.animate().setListener(null);
+                play.setVisibility(View.VISIBLE);
+                play.setAlpha(1.0f);
+                play.setScaleX(1.0f);
+                play.setScaleY(1.0f);
             }
         });
     }
