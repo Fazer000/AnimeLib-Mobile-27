@@ -215,6 +215,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private View skipIndicatorLeft;
     private View skipIndicatorRight;
     private View playerBufferingIndicator;
+    private volatile boolean isVideoLoading = false;
 
     // Comments manager
     private CommentsManager commentsManager;
@@ -4546,6 +4547,8 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
     private void showLoading(String message) {
         safeRunOnUiThread(() -> {
+            isVideoLoading = true;
+            updatePlayPauseAndLoadingState(true);
             if (loadingOverlay != null) {
                 loadingOverlay.setVisibility(View.VISIBLE);
                 TextView textView = loadingOverlay.findViewById(R.id.loadingText);
@@ -4561,6 +4564,10 @@ public class VideoPlayerActivity extends AppCompatActivity {
             if (loadingOverlay != null) {
                 loadingOverlay.setVisibility(View.GONE);
             }
+            if (player != null && (player.isPlaying() || player.getPlaybackState() == Player.STATE_READY)) {
+                isVideoLoading = false;
+            }
+            updatePlayPauseAndLoadingState(true);
         });
     }
 
@@ -6569,6 +6576,13 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 @Override
                 public void onPlaybackStateChanged(int playbackState) {
                     Log.d("PlayerControls", "Playback state changed: " + playbackState);
+                    if (playbackState == Player.STATE_READY) {
+                        if (player != null && player.isPlaying()) {
+                            isVideoLoading = false;
+                        }
+                    } else if (playbackState == Player.STATE_ENDED) {
+                        isVideoLoading = false;
+                    }
                     updatePlayerControlsState();
                     episodesManager.updateEpisodeNavigationButtonsVisibility();
                     updatePlayLoadingIndicator(playbackState);
@@ -6588,6 +6602,13 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 }
 
                 @Override
+                public void onRenderedFirstFrame() {
+                    Log.d("PlayerControls", "First frame rendered!");
+                    isVideoLoading = false;
+                    updatePlayPauseAndLoadingState(true);
+                }
+
+                @Override
                 public void onIsLoadingChanged(boolean isLoading) {
                     updatePlayPauseAndLoadingState(true);
                 }
@@ -6595,6 +6616,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 @Override
                 public void onIsPlayingChanged(boolean isPlaying) {
                     Log.d("PlayerControls", "Is playing changed: " + isPlaying);
+                    if (isPlaying) {
+                        isVideoLoading = false;
+                    }
                     updatePlayerControlsState();
                     updatePlayPauseAndLoadingState(true);
                     if (isInPictureInPictureMode) {
@@ -6605,6 +6629,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 @Override
                 public void onPlayerError(@NonNull PlaybackException error) {
                     Log.e("PlayerControls", "Player error: " + error.getMessage());
+                    isVideoLoading = false;
                     updatePlayerControlsState();
                     updatePlayPauseAndLoadingState(true);
                 }
@@ -6663,8 +6688,13 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
     private void updatePlayPauseAndLoadingState(boolean animate) {
         runOnUiThread(() -> {
-            boolean isBuffering = (player != null) && (player.getPlaybackState() == Player.STATE_BUFFERING);
-            boolean isPlaying = (player != null) && (player.isPlaying() || player.getPlayWhenReady());
+            boolean isBuffering = isVideoLoading
+                    || (player == null)
+                    || (player.getPlaybackState() == Player.STATE_BUFFERING)
+                    || (player.getPlaybackState() == Player.STATE_IDLE && player.getMediaItemCount() > 0)
+                    || (player.getPlayWhenReady() && !player.isPlaying() && player.getPlaybackState() != Player.STATE_ENDED);
+
+            boolean isPlaying = (player != null) && player.isPlaying();
 
             // Обновляем главный индикатор буферизации поверх плеера (видим всегда, в т.ч. при скрытых контролах)
             if (playerBufferingIndicator != null) {
