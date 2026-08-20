@@ -91,6 +91,25 @@ public class VideoFiltersBottomSheet extends FlexibleBottomSheetDialog {
 
         updateLabels();
 
+        // Touch listeners to make bottom sheet transparent while dragging sliders
+        Slider.OnSliderTouchListener touchListener = new Slider.OnSliderTouchListener() {
+            @Override
+            public void onStartTrackingTouch(Slider slider) {
+                setSheetAlpha(view, 0.30f);
+            }
+
+            @Override
+            public void onStopTrackingTouch(Slider slider) {
+                setSheetAlpha(view, 1.0f);
+            }
+        };
+
+        sliderBrightness.addOnSliderTouchListener(touchListener);
+        sliderContrast.addOnSliderTouchListener(touchListener);
+        sliderSaturation.addOnSliderTouchListener(touchListener);
+        sliderGamma.addOnSliderTouchListener(touchListener);
+        sliderHue.addOnSliderTouchListener(touchListener);
+
         // Listeners
         sliderBrightness.addOnChangeListener((slider, value, fromUser) -> {
             brightness = value;
@@ -173,5 +192,48 @@ public class VideoFiltersBottomSheet extends FlexibleBottomSheetDialog {
 
     private float clamp(float val, float min, float max) {
         return Math.max(min, Math.min(max, val));
+    }
+
+    private android.animation.ValueAnimator dimAnimator;
+
+    private void setSheetAlpha(View rootView, float targetAlpha) {
+        View target = findViewById(com.google.android.material.R.id.design_bottom_sheet);
+        if (target == null) {
+            target = rootView;
+        }
+        if (target != null) {
+            target.animate()
+                    .alpha(targetAlpha)
+                    .setDuration(180)
+                    .start();
+        }
+
+        // Animate dimming overlay / touch_outside view
+        View touchOutside = findViewById(com.google.android.material.R.id.touch_outside);
+        if (touchOutside != null) {
+            float targetDimAlpha = targetAlpha < 0.9f ? 0.0f : 1.0f;
+            touchOutside.animate()
+                    .alpha(targetDimAlpha)
+                    .setDuration(180)
+                    .start();
+        }
+
+        // Animate window dim amount
+        if (getWindow() != null) {
+            boolean isTransparent = targetAlpha < 0.9f;
+            float targetDim = isTransparent ? 0.0f : 0.5f;
+            if (dimAnimator != null) {
+                dimAnimator.cancel();
+            }
+            float startDim = isTransparent ? 0.5f : 0.0f;
+            dimAnimator = android.animation.ValueAnimator.ofFloat(startDim, targetDim);
+            dimAnimator.setDuration(180);
+            dimAnimator.addUpdateListener(animation -> {
+                if (getWindow() != null) {
+                    getWindow().setDimAmount((float) animation.getAnimatedValue());
+                }
+            });
+            dimAnimator.start();
+        }
     }
 }
