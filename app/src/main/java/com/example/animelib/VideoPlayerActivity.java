@@ -1367,7 +1367,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
             if (ambientVignetteOverlay != null) {
                 ambientVignetteOverlay.setVideoBounds(0, sbHeight, sw, sbHeight + portH);
             }
-            updateAmbientPlayerTransform(0f, sbHeight, sw, portH);
+            updateAmbientPlayerTransform(0f, sbHeight, sw, portH, false);
             android.view.ViewGroup.LayoutParams lp = playerContainer.getLayoutParams();
             if (lp != null) {
                 int screenWidth = getResources().getDisplayMetrics().widthPixels;
@@ -1407,35 +1407,12 @@ public class VideoPlayerActivity extends AppCompatActivity {
             }
             int sw = getResources().getDisplayMetrics().widthPixels;
             int sh = getResources().getDisplayMetrics().heightPixels;
-            float aspect = 16f / 9f;
-            if (player != null && player.getVideoSize() != null) {
-                int vw = player.getVideoSize().width;
-                int vh = player.getVideoSize().height;
-                if (vw > 0 && vh > 0) {
-                    aspect = (float) vw / vh;
-                }
-            }
-            float screenAspect = (float) sw / sh;
-            float lsW, lsH;
-            if (screenAspect > aspect) {
-                lsH = sh;
-                lsW = sh * aspect;
-            } else {
-                lsW = sw;
-                lsH = sw / aspect;
-            }
-            float lsLeft = (sw - lsW) / 2f;
-            float lsTop = (sh - lsH) / 2f;
 
             com.example.animelib.ui.AmbientVignetteOverlayView ambientVignetteOverlay = findViewById(R.id.ambientVignetteOverlay);
             if (ambientVignetteOverlay != null) {
-                if (lsLeft > 1f || lsTop > 1f) {
-                    ambientVignetteOverlay.setVideoBounds(lsLeft, lsTop, lsLeft + lsW, lsTop + lsH);
-                } else {
-                    ambientVignetteOverlay.clearCustomVideoBounds();
-                }
+                ambientVignetteOverlay.clearCustomVideoBounds();
             }
-            updateAmbientPlayerTransform(lsLeft, lsTop, lsW, lsH);
+            updateAmbientPlayerTransform(0f, 0f, sw, sh, true);
             android.view.ViewGroup.LayoutParams rawLp = playerContainer.getLayoutParams();
             if (rawLp != null) {
                 if (rawLp.width != android.view.ViewGroup.LayoutParams.MATCH_PARENT ||
@@ -1578,50 +1555,57 @@ public class VideoPlayerActivity extends AppCompatActivity {
             playerContainer.invalidateOutline();
         }
 
-        // Обновляем подсветку (ambient light), пересчитывая органичную виньетку и трансформ плеера
+        // Обновляем подсветку (ambient light), аккуратно гася её перед открытым боковым окном
+        float sidePanelLeft = screenWidth - (panelWidthPx * openProgress);
         com.example.animelib.ui.AmbientVignetteOverlayView ambientVignetteOverlay = findViewById(R.id.ambientVignetteOverlay);
         if (ambientVignetteOverlay != null) {
-            if (openProgress > 0f) {
-                ambientVignetteOverlay.setVideoBounds(currentLeft, currentTop, currentLeft + currentVideoW, currentTop + currentVideoH);
-            } else {
-                if (isPortrait) {
-                    int sbHeight = getStatusBarHeight();
-                    ambientVignetteOverlay.setVideoBounds(0, sbHeight, screenWidth, sbHeight + currentVideoH);
-                } else {
-                    if (currentLeft > 1f || currentTop > 1f) {
-                        ambientVignetteOverlay.setVideoBounds(currentLeft, currentTop, currentLeft + currentVideoW, currentTop + currentVideoH);
-                    } else {
-                        ambientVignetteOverlay.clearCustomVideoBounds();
-                    }
-                }
-            }
+            ambientVignetteOverlay.setVideoBounds(currentLeft, currentTop, currentLeft + currentVideoW, currentTop + currentVideoH, sidePanelLeft);
         }
 
-        updateAmbientPlayerTransform(currentLeft, currentTop, currentVideoW, currentVideoH);
+        updateAmbientPlayerTransform(currentLeft, currentTop, currentVideoW, currentVideoH, false);
     }
 
-    private void updateAmbientPlayerTransform(float vLeft, float vTop, float vWidth, float vHeight) {
+    private void updateAmbientPlayerTransform(float vLeft, float vTop, float vWidth, float vHeight, boolean isFullscreenLandscape) {
         androidx.media3.ui.PlayerView ambientPlayerView = findViewById(R.id.ambientPlayerView);
-        if (ambientPlayerView != null && vWidth > 0 && vHeight > 0) {
-            android.view.ViewGroup.LayoutParams lp = ambientPlayerView.getLayoutParams();
-            int targetW = (int) Math.ceil(vWidth);
-            int targetH = (int) Math.ceil(vHeight);
-            if (lp != null && (lp.width != targetW || lp.height != targetH)) {
-                lp.width = targetW;
-                lp.height = targetH;
-                if (lp instanceof FrameLayout.LayoutParams) {
-                    ((FrameLayout.LayoutParams) lp).gravity = Gravity.TOP | Gravity.START;
+        if (ambientPlayerView != null) {
+            if (isFullscreenLandscape) {
+                int sw = getResources().getDisplayMetrics().widthPixels;
+                int sh = getResources().getDisplayMetrics().heightPixels;
+                android.view.ViewGroup.LayoutParams lp = ambientPlayerView.getLayoutParams();
+                if (lp != null && (lp.width != sw || lp.height != sh)) {
+                    lp.width = sw;
+                    lp.height = sh;
+                    if (lp instanceof FrameLayout.LayoutParams) {
+                        ((FrameLayout.LayoutParams) lp).gravity = Gravity.TOP | Gravity.START;
+                    }
+                    ambientPlayerView.setLayoutParams(lp);
                 }
-                ambientPlayerView.setLayoutParams(lp);
-            }
-            ambientPlayerView.setPivotX(vWidth / 2f);
-            ambientPlayerView.setPivotY(vHeight / 2f);
-            ambientPlayerView.setTranslationX(vLeft);
-            ambientPlayerView.setTranslationY(vTop);
+                ambientPlayerView.setPivotX(sw / 2f);
+                ambientPlayerView.setPivotY(sh / 2f);
+                ambientPlayerView.setTranslationX(0f);
+                ambientPlayerView.setTranslationY(0f);
+                ambientPlayerView.setScaleX(1.0f);
+                ambientPlayerView.setScaleY(1.0f);
+            } else if (vWidth > 0 && vHeight > 0) {
+                android.view.ViewGroup.LayoutParams lp = ambientPlayerView.getLayoutParams();
+                int targetW = (int) Math.ceil(vWidth);
+                int targetH = (int) Math.ceil(vHeight);
+                if (lp != null && (lp.width != targetW || lp.height != targetH)) {
+                    lp.width = targetW;
+                    lp.height = targetH;
+                    if (lp instanceof FrameLayout.LayoutParams) {
+                        ((FrameLayout.LayoutParams) lp).gravity = Gravity.TOP | Gravity.START;
+                    }
+                    ambientPlayerView.setLayoutParams(lp);
+                }
+                ambientPlayerView.setPivotX(vWidth / 2f);
+                ambientPlayerView.setPivotY(vHeight / 2f);
+                ambientPlayerView.setTranslationX(vLeft);
+                ambientPlayerView.setTranslationY(vTop);
 
-            // Масштабируем плеер подсветки аккуратно (1.08x), чтобы только самые крайние пиксели видео (~4% с каждого края) формировали мягкое краевое свечение
-            ambientPlayerView.setScaleX(1.08f);
-            ambientPlayerView.setScaleY(1.08f);
+                ambientPlayerView.setScaleX(1.18f);
+                ambientPlayerView.setScaleY(1.18f);
+            }
         }
     }
     

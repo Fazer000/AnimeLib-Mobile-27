@@ -33,29 +33,30 @@ public class AmbientVignetteOverlayView extends View {
 
     private final RectF videoBounds = new RectF();
     private boolean hasVideoBounds = false;
+    private float sidePanelLeft = -1f;
 
     private int lastWidth = 0;
     private int lastHeight = 0;
 
     // ГРАДИЕНТ ПРОЗРАЧНОСТИ ДЛЯ DST_OUT:
-    // 0x00000000 = 0% вычитания прозрачности (100% сочный яркий цвет подсветки)
-    // 0xD8000000 = ~85% вычитания (остается ~15% мягкой яркости у самого края)
+    // 0x00000000 = 0% вычитания прозрачности (100% сочный яркий цвет)
+    // 0xFF000000 = 100% вычитания (полное погашение к самым внешним краям экрана)
     private static final int[] ALPHA_FALLOFF_TO_EDGE = new int[]{
             0x00000000,
             0x1A000000,
             0x4D000000,
             0x80000000,
-            0xB3000000,
-            0xD8000000  // Оставляет ~15% яркости на самых крайних пикселях
+            0xCC000000,
+            0xFF000000  // Плавно уходит в 0% яркости у самого края
     };
 
-    // Градиент для ухода подсветки в ноль под видеоплеером (портретный режим)
+    // Градиент для ухода подсветки в ноль под видеоплеером (портретный режим / открытые боковые окна)
     private static final int[] ALPHA_FALLOFF_PORTRAIT_BOTTOM = new int[]{
             0x00000000, // 100% яркость подсветки
             0x33000000,
             0x80000000,
             0xCC000000,
-            0xFF000000  // 100% убираем подсветку в списке серий/комментариях
+            0xFF000000  // 100% убираем подсветку
     };
 
     private static final float[] FALLOFF_STOPS = new float[]{
@@ -97,9 +98,15 @@ public class AmbientVignetteOverlayView extends View {
     }
 
     public void setVideoBounds(float left, float top, float right, float bottom) {
+        setVideoBounds(left, top, right, bottom, -1f);
+    }
+
+    public void setVideoBounds(float left, float top, float right, float bottom, float sidePanelLeft) {
         if (!hasVideoBounds || videoBounds.left != left || videoBounds.top != top ||
-                videoBounds.right != right || videoBounds.bottom != bottom) {
+                videoBounds.right != right || videoBounds.bottom != bottom ||
+                this.sidePanelLeft != sidePanelLeft) {
             videoBounds.set(left, top, right, bottom);
+            this.sidePanelLeft = sidePanelLeft;
             hasVideoBounds = true;
             rebuildShaders();
             invalidate();
@@ -107,8 +114,9 @@ public class AmbientVignetteOverlayView extends View {
     }
 
     public void clearCustomVideoBounds() {
-        if (hasVideoBounds) {
+        if (hasVideoBounds || sidePanelLeft > 0) {
             hasVideoBounds = false;
+            this.sidePanelLeft = -1f;
             rebuildShaders();
             invalidate();
         }
@@ -143,8 +151,8 @@ public class AmbientVignetteOverlayView extends View {
             ));
 
             // Под видеоплеером в портретном режиме (плавный уход свечения на 100dp ниже видео)
-            float bottomStart = vBottom + dpToPx(30);
-            float bottomEnd = vBottom + dpToPx(100);
+            float bottomStart = vBottom + dpToPx(20);
+            float bottomEnd = vBottom + dpToPx(90);
             portraitBottomFadePaint.setShader(new LinearGradient(
                     0, bottomStart, 0, bottomEnd,
                     ALPHA_FALLOFF_PORTRAIT_BOTTOM, PORTRAIT_STOPS, Shader.TileMode.CLAMP
@@ -158,8 +166,14 @@ public class AmbientVignetteOverlayView extends View {
                 ));
             }
 
-            // Справа от видео
-            if (vRight < w) {
+            // Справа от видео (с учетом бокового окна, если оно открыто)
+            if (sidePanelLeft > 0 && sidePanelLeft < w) {
+                float fadeStart = Math.max(vRight, sidePanelLeft - dpToPx(40));
+                rightEdgePaint.setShader(new LinearGradient(
+                        fadeStart, 0, sidePanelLeft, 0,
+                        ALPHA_FALLOFF_PORTRAIT_BOTTOM, PORTRAIT_STOPS, Shader.TileMode.CLAMP
+                ));
+            } else if (vRight < w) {
                 rightEdgePaint.setShader(new LinearGradient(
                         vRight, 0, w, 0,
                         ALPHA_FALLOFF_TO_EDGE, FALLOFF_STOPS, Shader.TileMode.CLAMP
@@ -167,27 +181,27 @@ public class AmbientVignetteOverlayView extends View {
             }
         } else {
             // Горизонтальный (полноэкранный) режим:
-            // 95%+ экрана — 100% яркая, чистая, сочная подсветка!
-            // У самых внешних краев экрана (20dp) плавно тускнеет до ~15% от изначальной яркости
-            float edgeDepth = dpToPx(20);
+            // Плавное, сочное затухание подсветки к 4 внешним границам экрана
+            float edgeDepthX = dpToPx(80); // Мягкий уход к левому/правому краю (80dp)
+            float edgeDepthY = dpToPx(40); // Мягкий уход к верхнему/нижнему краю (40dp)
 
             topEdgePaint.setShader(new LinearGradient(
-                    0, edgeDepth, 0, 0,
+                    0, edgeDepthY, 0, 0,
                     ALPHA_FALLOFF_TO_EDGE, FALLOFF_STOPS, Shader.TileMode.CLAMP
             ));
 
             bottomEdgePaint.setShader(new LinearGradient(
-                    0, h - edgeDepth, 0, h,
+                    0, h - edgeDepthY, 0, h,
                     ALPHA_FALLOFF_TO_EDGE, FALLOFF_STOPS, Shader.TileMode.CLAMP
             ));
 
             leftEdgePaint.setShader(new LinearGradient(
-                    edgeDepth, 0, 0, 0,
+                    edgeDepthX, 0, 0, 0,
                     ALPHA_FALLOFF_TO_EDGE, FALLOFF_STOPS, Shader.TileMode.CLAMP
             ));
 
             rightEdgePaint.setShader(new LinearGradient(
-                    w - edgeDepth, 0, w, 0,
+                    w - edgeDepthX, 0, w, 0,
                     ALPHA_FALLOFF_TO_EDGE, FALLOFF_STOPS, Shader.TileMode.CLAMP
             ));
         }
@@ -220,11 +234,11 @@ public class AmbientVignetteOverlayView extends View {
             }
 
             // Снизу под видео: плавный уход свечения
-            float bottomStart = vBottom + dpToPx(30);
-            float bottomEnd = vBottom + dpToPx(100);
+            float bottomStart = vBottom + dpToPx(20);
+            float bottomEnd = vBottom + dpToPx(90);
             if (bottomEnd < h) {
                 canvas.drawRect(0, bottomStart, w, bottomEnd, portraitBottomFadePaint);
-                // Полностью стираем ниже 100dp
+                // Полностью стираем ниже 90dp
                 canvas.drawRect(0, bottomEnd, w, h, eraseBottomPaint);
             } else {
                 canvas.drawRect(0, bottomStart, w, h, portraitBottomFadePaint);
@@ -235,26 +249,31 @@ public class AmbientVignetteOverlayView extends View {
                 canvas.drawRect(0, 0, vLeft, h, leftEdgePaint);
             }
 
-            // Справа от видео
-            if (vRight < w) {
+            // Справа от видео: гасим подсветку под открытым боковым окном
+            if (sidePanelLeft > 0 && sidePanelLeft < w) {
+                float fadeStart = Math.max(vRight, sidePanelLeft - dpToPx(40));
+                canvas.drawRect(fadeStart, 0, sidePanelLeft, h, rightEdgePaint);
+                canvas.drawRect(sidePanelLeft, 0, w, h, eraseBottomPaint);
+            } else if (vRight < w) {
                 canvas.drawRect(vRight, 0, w, h, rightEdgePaint);
             }
         } else {
             // Горизонтальный (полноэкранный) режим:
-            // Мягкое снижение прозрачности к 4 внешним краям экрана (20dp)
-            float edgeDepth = dpToPx(20);
+            // Мягкое затухание подсветки к 4 внешним краям экрана
+            float edgeDepthX = dpToPx(80);
+            float edgeDepthY = dpToPx(40);
 
             // Верхний край
-            canvas.drawRect(0, 0, w, edgeDepth, topEdgePaint);
+            canvas.drawRect(0, 0, w, edgeDepthY, topEdgePaint);
 
             // Нижний край
-            canvas.drawRect(0, h - edgeDepth, w, h, bottomEdgePaint);
+            canvas.drawRect(0, h - edgeDepthY, w, h, bottomEdgePaint);
 
             // Левый край
-            canvas.drawRect(0, 0, edgeDepth, h, leftEdgePaint);
+            canvas.drawRect(0, 0, edgeDepthX, h, leftEdgePaint);
 
             // Правый край
-            canvas.drawRect(w - edgeDepth, 0, w, h, rightEdgePaint);
+            canvas.drawRect(w - edgeDepthX, 0, w, h, rightEdgePaint);
         }
 
         canvas.restoreToCount(saveCount);
