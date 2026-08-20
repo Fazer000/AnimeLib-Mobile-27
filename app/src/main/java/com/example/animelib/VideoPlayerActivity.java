@@ -2739,8 +2739,8 @@ public class VideoPlayerActivity extends AppCompatActivity {
             public void onPlaybackStateChanged(int playbackState) {
                 Log.d("PlayerControls", "Playback state changed: " + playbackState);
                 if (playbackState == Player.STATE_READY) {
-                    isSeeking = false;
-                    if (player != null && player.isPlaying()) {
+                    if (player != null && (player.isPlaying() || !player.getPlayWhenReady())) {
+                        isSeeking = false;
                         isVideoLoading = false;
                     }
                 } else if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
@@ -6749,19 +6749,24 @@ public class VideoPlayerActivity extends AppCompatActivity {
             boolean isPlayWhenReady = (player != null) && player.getPlayWhenReady();
             int playbackState = (player != null) ? player.getPlaybackState() : Player.STATE_IDLE;
 
-            // Буферизация: состояние STATE_BUFFERING при активном воспроизведении, либо загрузка видео, либо перемотка
+            // Буферизация / загрузка / перемотка:
+            // 1) ExoPlayer находится в STATE_BUFFERING
+            // 2) Активна загрузка видео (isVideoLoading)
+            // 3) Выполняется перемотка пользователем (isSeeking)
+            // 4) Активно воспроизведение (isPlayWhenReady), но воспроизведение еще не началось (не играет) и не в конце
             boolean isBuffering = !isEnded && (
-                    (playbackState == Player.STATE_BUFFERING && isPlayWhenReady)
+                    playbackState == Player.STATE_BUFFERING
                     || isVideoLoading
-                    || (isSeeking && !isPlaying)
+                    || isSeeking
+                    || (isPlayWhenReady && !isPlaying && playbackState != Player.STATE_IDLE)
             );
 
             // Показываем индикатор буферизации поверх плеера/контролов, если не активен полноэкранный loadingOverlay
             boolean showBuffering = isBuffering && (loadingOverlay == null || loadingOverlay.getVisibility() != View.VISIBLE);
 
-            // ЕДИНЫЙ индикатор буферизации поверх плеера и контролов
+            // Оверлейный индикатор на самом плеере (отображается, когда контролы скрыты)
             if (playerBufferingIndicator != null) {
-                if (showBuffering) {
+                if (showBuffering && !isControllerVisible) {
                     playerBufferingIndicator.animate().setListener(null);
                     playerBufferingIndicator.animate().cancel();
                     playerBufferingIndicator.setVisibility(View.VISIBLE);
@@ -6782,42 +6787,59 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
             View play = controllerView.findViewById(R.id.btnPlayerPlay);
             View pause = controllerView.findViewById(R.id.btnPlayerPause);
-
-            if (play == null || pause == null) return;
+            View spinner = controllerView.findViewById(R.id.playLoadingIndicator);
 
             if (showBuffering) {
-                // Во время буферизации скрываем обе кнопки (индикатор крутится поверх в центре)
-                play.animate().cancel();
-                play.animate().setListener(null);
-                play.setVisibility(View.GONE);
-
-                pause.animate().cancel();
-                pause.animate().setListener(null);
-                pause.setVisibility(View.GONE);
+                // Во время буферизации или перемотки показываем спиннер в контроллере и прячем Play/Pause
+                if (play != null) {
+                    play.animate().cancel();
+                    play.animate().setListener(null);
+                    play.setVisibility(View.GONE);
+                }
+                if (pause != null) {
+                    pause.animate().cancel();
+                    pause.animate().setListener(null);
+                    pause.setVisibility(View.GONE);
+                }
+                if (spinner != null) {
+                    spinner.setVisibility(View.VISIBLE);
+                }
             } else if (isPlaying) {
                 // Воспроизведение - показываем кнопку паузы
-                play.animate().cancel();
-                play.animate().setListener(null);
-                play.setVisibility(View.GONE);
-
-                pause.animate().cancel();
-                pause.animate().setListener(null);
-                pause.setVisibility(View.VISIBLE);
-                pause.setAlpha(1.0f);
-                pause.setScaleX(1.0f);
-                pause.setScaleY(1.0f);
+                if (play != null) {
+                    play.animate().cancel();
+                    play.animate().setListener(null);
+                    play.setVisibility(View.GONE);
+                }
+                if (spinner != null) {
+                    spinner.setVisibility(View.GONE);
+                }
+                if (pause != null) {
+                    pause.animate().cancel();
+                    pause.animate().setListener(null);
+                    pause.setVisibility(View.VISIBLE);
+                    pause.setAlpha(1.0f);
+                    pause.setScaleX(1.0f);
+                    pause.setScaleY(1.0f);
+                }
             } else {
                 // Пауза - показываем кнопку воспроизведения
-                pause.animate().cancel();
-                pause.animate().setListener(null);
-                pause.setVisibility(View.GONE);
-
-                play.animate().cancel();
-                play.animate().setListener(null);
-                play.setVisibility(View.VISIBLE);
-                play.setAlpha(1.0f);
-                play.setScaleX(1.0f);
-                play.setScaleY(1.0f);
+                if (pause != null) {
+                    pause.animate().cancel();
+                    pause.animate().setListener(null);
+                    pause.setVisibility(View.GONE);
+                }
+                if (spinner != null) {
+                    spinner.setVisibility(View.GONE);
+                }
+                if (play != null) {
+                    play.animate().cancel();
+                    play.animate().setListener(null);
+                    play.setVisibility(View.VISIBLE);
+                    play.setAlpha(1.0f);
+                    play.setScaleX(1.0f);
+                    play.setScaleY(1.0f);
+                }
             }
         });
     }

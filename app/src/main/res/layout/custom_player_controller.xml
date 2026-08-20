@@ -209,6 +209,17 @@
                 android:contentDescription="Pause"
                 android:clickable="true"
                 android:focusable="true" />
+
+            <ProgressBar
+                android:id="@+id/playLoadingIndicator"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:indeterminateTint="?attr/secondaryColor"
+                android:visibility="gone"
+                android:clickable="false"
+                android:focusable="false" />
         </FrameLayout>
 
         <!-- Next Episode Button -->
