@@ -2462,6 +2462,10 @@ public class VideoPlayerActivity extends AppCompatActivity {
             
             // Update button visibility
             updateControllerButtonsVisibility(isControllerVisible);
+
+            if (shouldBeVisible) {
+                updatePlayPauseAndLoadingState(false);
+            }
         });
     }
     
@@ -4360,20 +4364,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
         hideLoading();
         hideAllSkeletonsForOffline();
 
-        View controllerView = playerView != null ? playerView.findViewById(R.id.exo_controller) : null;
-        if (controllerView != null) {
-            View spinner = controllerView.findViewById(R.id.playLoadingIndicator);
-            if (spinner != null) {
-                spinner.setVisibility(View.GONE);
-            }
-            View play = controllerView.findViewById(R.id.exo_play);
-            View pause = controllerView.findViewById(R.id.exo_pause);
-            if (player != null) {
-                boolean isPlaying = player.isPlaying();
-                if (play != null) play.setVisibility(isPlaying ? View.GONE : View.VISIBLE);
-                if (pause != null) pause.setVisibility(isPlaying ? View.VISIBLE : View.GONE);
-            }
-        }
+        updatePlayPauseAndLoadingState(false);
     }
 
     /**
@@ -6719,20 +6710,15 @@ public class VideoPlayerActivity extends AppCompatActivity {
         // Устанавливаем начальную видимость play/pause кнопок и индикатора
         updatePlayPauseAndLoadingState(false);
 
-        // Проверяем, что ExoPlayer нашел стандартные кнопки
-        ImageButton exoPlayButton = controllerView.findViewById(R.id.exo_play);
-        ImageButton exoPauseButton = controllerView.findViewById(R.id.exo_pause);
+        // Проверяем, что найдены кнопки управления
+        ImageButton btnPlayerPlay = controllerView.findViewById(R.id.btnPlayerPlay);
+        ImageButton btnPlayerPause = controllerView.findViewById(R.id.btnPlayerPause);
 
-        Log.d("PlayerControls", "ExoPlayer buttons found - Play: " + (exoPlayButton != null) +
-                ", Pause: " + (exoPauseButton != null));
+        Log.d("PlayerControls", "Player buttons found - Play: " + (btnPlayerPlay != null) +
+                ", Pause: " + (btnPlayerPause != null));
 
-        if (exoPlayButton != null) {
-            Log.d("PlayerControls", "Play button visibility: " + exoPlayButton.getVisibility() +
-                    ", enabled: " + exoPlayButton.isEnabled() +
-                    ", clickable: " + exoPlayButton.isClickable());
-
-            // Добавляем обработчик с управлением видимостью
-            exoPlayButton.setOnClickListener(v -> {
+        if (btnPlayerPlay != null) {
+            btnPlayerPlay.setOnClickListener(v -> {
                 Log.d("PlayerControls", "Play button clicked!");
                 if (player != null) {
                     player.play();
@@ -6741,13 +6727,8 @@ public class VideoPlayerActivity extends AppCompatActivity {
             });
         }
 
-        if (exoPauseButton != null) {
-            Log.d("PlayerControls", "Pause button visibility: " + exoPauseButton.getVisibility() +
-                    ", enabled: " + exoPauseButton.isEnabled() +
-                    ", clickable: " + exoPauseButton.isClickable());
-
-            // Добавляем обработчик с управлением видимостью
-            exoPauseButton.setOnClickListener(v -> {
+        if (btnPlayerPause != null) {
+            btnPlayerPause.setOnClickListener(v -> {
                 Log.d("PlayerControls", "Pause button clicked!");
                 if (player != null) {
                     player.pause();
@@ -6764,16 +6745,20 @@ public class VideoPlayerActivity extends AppCompatActivity {
     }
 
     private void updatePlayPauseAndLoadingState(boolean animate) {
-        runOnUiThread(() -> {
-            boolean isBuffering = isVideoLoading
-                    || isSeeking
-                    || (player == null)
-                    || (player.getPlaybackState() == Player.STATE_BUFFERING)
-                    || (player.getPlaybackState() == Player.STATE_IDLE && player.getMediaItemCount() > 0)
-                    || (player.isLoading() && !player.isPlaying() && player.getPlaybackState() != Player.STATE_ENDED)
-                    || (player.getPlayWhenReady() && !player.isPlaying() && player.getPlaybackState() != Player.STATE_ENDED && player.getPlaybackState() != Player.STATE_IDLE);
-
+        safeRunOnUiThread(() -> {
+            boolean isEnded = (player != null) && (player.getPlaybackState() == Player.STATE_ENDED);
             boolean isPlaying = (player != null) && player.isPlaying();
+            boolean isPausedByUser = (player != null)
+                    && (player.getPlaybackState() == Player.STATE_READY)
+                    && !player.getPlayWhenReady()
+                    && !isSeeking
+                    && !isVideoLoading;
+            boolean isIdleEmpty = (player != null)
+                    && (player.getPlaybackState() == Player.STATE_IDLE)
+                    && (player.getMediaItemCount() == 0)
+                    && !isVideoLoading;
+
+            boolean isBuffering = !isPlaying && !isPausedByUser && !isEnded && !isIdleEmpty;
 
             boolean showBuffering = isBuffering && (loadingOverlay == null || loadingOverlay.getVisibility() != View.VISIBLE);
 
@@ -6836,14 +6821,14 @@ public class VideoPlayerActivity extends AppCompatActivity {
             View controllerView = playerView.findViewById(R.id.exo_controller);
             if (controllerView == null) return;
 
-            View play = controllerView.findViewById(R.id.exo_play);
-            View pause = controllerView.findViewById(R.id.exo_pause);
+            View play = controllerView.findViewById(R.id.btnPlayerPlay);
+            View pause = controllerView.findViewById(R.id.btnPlayerPause);
             View spinner = controllerView.findViewById(R.id.playLoadingIndicator);
 
             if (play == null || pause == null) return;
 
             View activeView;
-            if (showBuffering) {
+            if (isBuffering) {
                 activeView = spinner;
             } else if (isPlaying) {
                 activeView = pause;
@@ -6854,6 +6839,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
             View[] allViews = new View[]{play, pause, spinner};
 
             for (View v : allViews) {
+                if (v == null) continue;
                 if (v == activeView) {
                     v.animate().cancel();
                     v.animate().setListener(null);

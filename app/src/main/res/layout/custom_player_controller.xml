@@ -181,7 +181,7 @@
             android:layout_height="64dp">
 
             <ImageButton
-                android:id="@+id/exo_play"
+                android:id="@+id/btnPlayerPlay"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:padding="0dp"
@@ -196,7 +196,7 @@
                 android:focusable="true" />
 
             <ImageButton
-                android:id="@+id/exo_pause"
+                android:id="@+id/btnPlayerPause"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:padding="0dp"
@@ -216,6 +216,7 @@
                 android:layout_height="42dp"
                 android:layout_gravity="center"
                 android:indeterminate="true"
+                android:visibility="gone"
                 app:trackCornerRadius="8dp"
                 app:indicatorColor="?attr/secondaryColor"
                 app:trackThickness="4dp"/>
