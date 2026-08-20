@@ -440,10 +440,21 @@ public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.Commen
         if (holder.stickyBadgeContainer != null) {
             holder.stickyBadgeContainer.setVisibility(isSticky ? View.VISIBLE : View.GONE);
         }
+        ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) holder.itemView.getLayoutParams();
         if (isSticky) {
-            holder.itemView.setBackgroundColor(android.graphics.Color.parseColor("#188852DE"));
+            holder.itemView.setBackgroundResource(R.drawable.bg_sticky_comment);
+            if (lp != null) {
+                int hMargin = (int) (4 * density);
+                int vMargin = (int) (4 * density);
+                lp.setMargins(hMargin, vMargin, hMargin, vMargin);
+                holder.itemView.setLayoutParams(lp);
+            }
         } else {
             holder.itemView.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            if (lp != null && (lp.leftMargin != 0 || lp.topMargin != 0 || lp.rightMargin != 0 || lp.bottomMargin != 0)) {
+                lp.setMargins(0, 0, 0, 0);
+                holder.itemView.setLayoutParams(lp);
+            }
         }
     }
 

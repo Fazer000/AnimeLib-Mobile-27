@@ -35,8 +35,7 @@
             android:layout_marginBottom="6dp"
             android:paddingHorizontal="8dp"
             android:paddingVertical="3dp"
-            android:background="@drawable/bg_quality_badge"
-            android:backgroundTint="#268852DE"
+            android:background="@drawable/bg_sticky_badge"
             android:visibility="gone">
 
             <ImageView

@@ -217,6 +217,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private View playerBufferingIndicator;
     private volatile boolean isVideoLoading = false;
     private volatile boolean isSeeking = false;
+    private Player.Listener playerEventListener;
 
     // Comments manager
     private CommentsManager commentsManager;
@@ -670,12 +671,16 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 } else if (ACTION_PIP_REWIND.equals(action)) {
                     long currentPos = player.getCurrentPosition();
                     long newPos = Math.max(0, currentPos - 10000);
+                    isSeeking = true;
                     player.seekTo(newPos);
+                    updatePlayPauseAndLoadingState(true);
                 } else if (ACTION_PIP_FAST_FORWARD.equals(action)) {
                     long currentPos = player.getCurrentPosition();
                     long duration = player.getDuration();
                     long newPos = duration > 0 ? Math.min(duration, currentPos + 10000) : currentPos + 10000;
+                    isSeeking = true;
                     player.seekTo(newPos);
+                    updatePlayPauseAndLoadingState(true);
                 }
             }
         };
@@ -2402,6 +2407,42 @@ public class VideoPlayerActivity extends AppCompatActivity {
         
         // Setup gestures callback
         setupGesturesCallback();
+        
+        // Setup timebar scrub listener
+        setupTimeBarListener();
+    }
+    
+    /**
+     * Настройка listener'а перемотки таймбара
+     */
+    private void setupTimeBarListener() {
+        if (timeBar != null) {
+            timeBar.addListener(new androidx.media3.ui.TimeBar.OnScrubListener() {
+                @Override
+                public void onScrubStart(@NonNull androidx.media3.ui.TimeBar timeBar, long position) {
+                    isSeeking = true;
+                    updatePlayPauseAndLoadingState(true);
+                }
+
+                @Override
+                public void onScrubMove(@NonNull androidx.media3.ui.TimeBar timeBar, long position) {
+                    isSeeking = true;
+                }
+
+                @Override
+                public void onScrubStop(@NonNull androidx.media3.ui.TimeBar timeBar, long position, boolean canceled) {
+                    if (!canceled) {
+                        isSeeking = true;
+                        if (player != null) {
+                            player.seekTo(position);
+                        }
+                    } else {
+                        isSeeking = false;
+                    }
+                    updatePlayPauseAndLoadingState(true);
+                }
+            });
+        }
     }
     
     /**
@@ -2687,60 +2728,90 @@ public class VideoPlayerActivity extends AppCompatActivity {
      * Настройка player listener
      */
     private void setupPlayerListener() {
-        if (player != null) {
-            player.addListener(new Player.Listener() {
-                @Override
-                public void onPlaybackStateChanged(int playbackState) {
-                    if (episodesManager != null) {
-                        episodesManager.updateEpisodeNavigationButtonsVisibility();
-                    }
-                    if (playbackState == Player.STATE_READY) {
-                        isSeeking = false;
-                        if (player != null && player.isPlaying()) {
-                            isVideoLoading = false;
-                        }
-                    } else if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
-                        isSeeking = false;
+        if (player == null) return;
+        if (playerEventListener != null) {
+            player.removeListener(playerEventListener);
+        }
+        playerEventListener = new Player.Listener() {
+            @Override
+            public void onPlaybackStateChanged(int playbackState) {
+                Log.d("PlayerControls", "Playback state changed: " + playbackState);
+                if (playbackState == Player.STATE_READY) {
+                    isSeeking = false;
+                    if (player != null && player.isPlaying()) {
                         isVideoLoading = false;
                     }
-                    updatePlayPauseAndLoadingState(true);
-                }
-
-                @Override
-                public void onIsLoadingChanged(boolean isLoading) {
-                    updatePlayPauseAndLoadingState(true);
-                }
-
-                @Override
-                public void onIsPlayingChanged(boolean isPlaying) {
-                    if (isPlaying) {
-                        isSeeking = false;
-                        isVideoLoading = false;
-                    }
-                    updatePlayPauseAndLoadingState(true);
-                }
-
-                @Override
-                public void onPositionDiscontinuity(@NonNull Player.PositionInfo oldPosition, @NonNull Player.PositionInfo newPosition, int reason) {
-                    if (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) {
-                        isSeeking = true;
-                    }
-                    updatePlayPauseAndLoadingState(true);
-                }
-
-                @Override
-                public void onRenderedFirstFrame() {
+                } else if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
                     isSeeking = false;
                     isVideoLoading = false;
-                    updatePlayPauseAndLoadingState(true);
                 }
+                updatePlayerControlsState();
+                if (episodesManager != null) {
+                    episodesManager.updateEpisodeNavigationButtonsVisibility();
+                }
+                updatePlayPauseAndLoadingState(true);
 
-                @Override
-                public void onEvents(@NonNull Player player, @NonNull Player.Events events) {
-                    updatePlayPauseAndLoadingState(true);
+                // Handle auto-play next episode
+                if (playbackState == Player.STATE_ENDED && autoPlay) {
+                    Log.d("PlayerControls", "Video ended, checking for next episode");
+                    if (episodesManager != null && episodesManager.getNextEpisode() != null) {
+                        showNextEpisodeOverlay();
+                    } else {
+                        Log.d("PlayerControls", "No next episode available");
+                    }
                 }
-            });
-        }
+            }
+
+            @Override
+            public void onPositionDiscontinuity(@NonNull Player.PositionInfo oldPosition, @NonNull Player.PositionInfo newPosition, int reason) {
+                if (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) {
+                    isSeeking = true;
+                }
+                updatePlayPauseAndLoadingState(true);
+            }
+
+            @Override
+            public void onRenderedFirstFrame() {
+                Log.d("PlayerControls", "First frame rendered!");
+                isSeeking = false;
+                isVideoLoading = false;
+                updatePlayPauseAndLoadingState(true);
+            }
+
+            @Override
+            public void onIsLoadingChanged(boolean isLoading) {
+                updatePlayPauseAndLoadingState(true);
+            }
+
+            @Override
+            public void onIsPlayingChanged(boolean isPlaying) {
+                Log.d("PlayerControls", "Is playing changed: " + isPlaying);
+                if (isPlaying) {
+                    isSeeking = false;
+                    isVideoLoading = false;
+                }
+                updatePlayerControlsState();
+                updatePlayPauseAndLoadingState(true);
+                if (isInPictureInPictureMode) {
+                    updatePictureInPictureParams();
+                }
+            }
+
+            @Override
+            public void onPlayerError(@NonNull PlaybackException error) {
+                Log.e("PlayerControls", "Player error: " + error.getMessage());
+                isSeeking = false;
+                isVideoLoading = false;
+                updatePlayerControlsState();
+                updatePlayPauseAndLoadingState(true);
+            }
+
+            @Override
+            public void onEvents(@NonNull Player player, @NonNull Player.Events events) {
+                updatePlayPauseAndLoadingState(true);
+            }
+        };
+        player.addListener(playerEventListener);
     }
     
     /**
@@ -2751,6 +2822,8 @@ public class VideoPlayerActivity extends AppCompatActivity {
             @Override
             public void onSeekGesture(long seekPosition) {
                 Log.d("VideoPlayer", "Seek gesture: " + seekPosition);
+                isSeeking = true;
+                updatePlayPauseAndLoadingState(true);
             }
             
             @Override
@@ -2902,7 +2975,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
                     newPosition = Math.min(newPosition, duration);
                 }
                 
+                isSeeking = true;
                 player.seekTo(newPosition);
+                updatePlayPauseAndLoadingState(true);
                 Log.d("VideoPlayer", "Double tap skip: " + (isForward ? "forward" : "backward") + 
                       " to " + (newPosition / 1000) + "s (skip=" + (skipDuration / 1000) + "s)");
             }
@@ -3982,9 +4057,11 @@ public class VideoPlayerActivity extends AppCompatActivity {
                     .build();
             playerView.setPlayer(player);
             setVideoResizeMode(currentResizeMode);
+            setupPlayerListener();
         } else {
             player.stop();
             player.clearMediaItems();
+            setupPlayerListener();
         }
 
         if (ambientLightManager != null) {
@@ -4770,6 +4847,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
         playerView.setPlayer(player);
         setVideoResizeMode(currentResizeMode);
+        setupPlayerListener();
         
         // Set player for ambient light manager
         if (ambientLightManager != null) {
@@ -5687,6 +5765,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
         playerView.setPlayer(player);
         setVideoResizeMode(currentResizeMode);
+        setupPlayerListener();
         
         // Set player for ambient light manager
         if (ambientLightManager != null) {
@@ -6621,7 +6700,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
                         newPosition = duration;
                     }
 
+                    isSeeking = true;
                     player.seekTo(newPosition);
+                    updatePlayPauseAndLoadingState(true);
                     Log.d("PlayerControls", "Skipped forward to: " + (newPosition / 1000) + "s (+" + (skipDuration / 1000) + "s)");
                 } else {
                     Log.w("PlayerControls", "Skip forward not available");
@@ -6629,91 +6710,8 @@ public class VideoPlayerActivity extends AppCompatActivity {
             });
         }
 
-        // Добавляем listener для синхронизации состояния всех кнопок
-        if (player != null) {
-            player.addListener(new Player.Listener() {
-                @Override
-                public void onPlaybackStateChanged(int playbackState) {
-                    Log.d("PlayerControls", "Playback state changed: " + playbackState);
-                    if (playbackState == Player.STATE_READY) {
-                        isSeeking = false;
-                        if (player != null && player.isPlaying()) {
-                            isVideoLoading = false;
-                        }
-                    } else if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
-                        isSeeking = false;
-                        isVideoLoading = false;
-                    }
-                    updatePlayerControlsState();
-                    if (episodesManager != null) {
-                        episodesManager.updateEpisodeNavigationButtonsVisibility();
-                    }
-                    updatePlayPauseAndLoadingState(true);
-
-                    // Handle auto-play next episode
-                    if (playbackState == Player.STATE_ENDED && autoPlay) {
-                        Log.d("PlayerControls", "Video ended, checking for next episode");
-                        
-                        // Проверяем есть ли следующий эпизод
-                        if (episodesManager != null && episodesManager.getNextEpisode() != null) {
-                            // Показываем оверлей с обратным отсчетом
-                            showNextEpisodeOverlay();
-                        } else {
-                            Log.d("PlayerControls", "No next episode available");
-                        }
-                    }
-                }
-
-                @Override
-                public void onPositionDiscontinuity(@NonNull Player.PositionInfo oldPosition, @NonNull Player.PositionInfo newPosition, int reason) {
-                    if (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) {
-                        isSeeking = true;
-                    }
-                    updatePlayPauseAndLoadingState(true);
-                }
-
-                @Override
-                public void onRenderedFirstFrame() {
-                    Log.d("PlayerControls", "First frame rendered!");
-                    isSeeking = false;
-                    isVideoLoading = false;
-                    updatePlayPauseAndLoadingState(true);
-                }
-
-                @Override
-                public void onIsLoadingChanged(boolean isLoading) {
-                    updatePlayPauseAndLoadingState(true);
-                }
-
-                @Override
-                public void onIsPlayingChanged(boolean isPlaying) {
-                    Log.d("PlayerControls", "Is playing changed: " + isPlaying);
-                    if (isPlaying) {
-                        isSeeking = false;
-                        isVideoLoading = false;
-                    }
-                    updatePlayerControlsState();
-                    updatePlayPauseAndLoadingState(true);
-                    if (isInPictureInPictureMode) {
-                        updatePictureInPictureParams();
-                    }
-                }
-
-                @Override
-                public void onPlayerError(@NonNull PlaybackException error) {
-                    Log.e("PlayerControls", "Player error: " + error.getMessage());
-                    isSeeking = false;
-                    isVideoLoading = false;
-                    updatePlayerControlsState();
-                    updatePlayPauseAndLoadingState(true);
-                }
-
-                @Override
-                public void onEvents(@NonNull Player player, @NonNull Player.Events events) {
-                    updatePlayPauseAndLoadingState(true);
-                }
-            });
-        }
+        // Подключаем listener для синхронизации состояния плеера и кнопок
+        setupPlayerListener();
 
         // Инициализируем состояние кнопок
         updatePlayerControlsState();
@@ -6768,10 +6766,12 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private void updatePlayPauseAndLoadingState(boolean animate) {
         runOnUiThread(() -> {
             boolean isBuffering = isVideoLoading
+                    || isSeeking
                     || (player == null)
                     || (player.getPlaybackState() == Player.STATE_BUFFERING)
                     || (player.getPlaybackState() == Player.STATE_IDLE && player.getMediaItemCount() > 0)
-                    || (player.getPlayWhenReady() && !player.isPlaying() && player.getPlaybackState() != Player.STATE_ENDED);
+                    || (player.isLoading() && !player.isPlaying() && player.getPlaybackState() != Player.STATE_ENDED)
+                    || (player.getPlayWhenReady() && !player.isPlaying() && player.getPlaybackState() != Player.STATE_ENDED && player.getPlaybackState() != Player.STATE_IDLE);
 
             boolean isPlaying = (player != null) && player.isPlaying();
 
@@ -6842,20 +6842,16 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
             if (play == null || pause == null) return;
 
-            if (spinner != null) {
-                spinner.setVisibility(View.GONE);
-            }
-
             View activeView;
-            if (isBuffering) {
-                activeView = null;
+            if (showBuffering) {
+                activeView = spinner;
             } else if (isPlaying) {
                 activeView = pause;
             } else {
                 activeView = play;
             }
 
-            View[] allViews = new View[]{play, pause};
+            View[] allViews = new View[]{play, pause, spinner};
 
             for (View v : allViews) {
                 if (v == activeView) {

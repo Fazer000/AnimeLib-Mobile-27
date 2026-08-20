@@ -467,6 +467,9 @@ public class GesturesManager {
                         long dur = player.getDuration();
                         if (dur > 0) newPos = Math.min(newPos, dur);
                         player.seekTo(newPos);
+                        if (gestureCallback != null) {
+                            gestureCallback.onSeekGesture(newPos);
+                        }
                         Log.d(TAG, "Seek completed: " + finalOffsetMs + "ms");
                         
                         // Показываем контролы плеера после перемотки
