@@ -93,7 +93,7 @@ public class AmbientLightManager {
     }
 
     /**
-     * Первичная настройка второго плеера (растяжение fill, масштаб и блюр)
+     * Первичная настройка второго плеера (сохранение пропорций FIT, масштаб и блюр)
      */
     private void setupAmbientViewStyle() {
         if (ambientContainer != null) {
@@ -103,9 +103,7 @@ public class AmbientLightManager {
         if (ambientPlayerView == null) return;
 
         ambientPlayerView.setUseController(false);
-        ambientPlayerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
-        ambientPlayerView.setScaleX(1.01f);
-        ambientPlayerView.setScaleY(1.01f);
+        ambientPlayerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
         ambientPlayerView.setAlpha(1.0f);
 
         // Сильный аппаратный блюр GPU + увеличение насыщенности и яркости свечения (Android 12+)

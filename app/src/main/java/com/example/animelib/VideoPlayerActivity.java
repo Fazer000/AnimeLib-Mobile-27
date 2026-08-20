@@ -1350,16 +1350,21 @@ public class VideoPlayerActivity extends AppCompatActivity {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 playerContainer.invalidateOutline();
             }
-            com.example.animelib.ui.AmbientVignetteOverlayView ambientVignetteOverlay = findViewById(R.id.ambientVignetteOverlay);
-            if (ambientVignetteOverlay != null) {
-                int sbHeight = getStatusBarHeight();
-                int sw = getResources().getDisplayMetrics().widthPixels;
-                ambientVignetteOverlay.setVideoBounds(0, sbHeight, sw, sbHeight + (sw * 9 / 16));
-            }
             int sbHeight = getStatusBarHeight();
             int sw = getResources().getDisplayMetrics().widthPixels;
-            float headerCenterY = sbHeight + (sw * 9 / 16) / 2f;
-            updateAmbientPlayerTransform(sw / 2f, headerCenterY, 1f);
+            float portH = sw * 9 / 16f;
+            if (player != null && player.getVideoSize() != null) {
+                int vw = player.getVideoSize().width;
+                int vh = player.getVideoSize().height;
+                if (vw > 0 && vh > 0) {
+                    portH = sw / ((float) vw / vh);
+                }
+            }
+            com.example.animelib.ui.AmbientVignetteOverlayView ambientVignetteOverlay = findViewById(R.id.ambientVignetteOverlay);
+            if (ambientVignetteOverlay != null) {
+                ambientVignetteOverlay.setVideoBounds(0, sbHeight, sw, sbHeight + portH);
+            }
+            updateAmbientPlayerTransform(0f, sbHeight, sw, portH);
             android.view.ViewGroup.LayoutParams lp = playerContainer.getLayoutParams();
             if (lp != null) {
                 int screenWidth = getResources().getDisplayMetrics().widthPixels;
@@ -1397,13 +1402,37 @@ public class VideoPlayerActivity extends AppCompatActivity {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 playerContainer.invalidateOutline();
             }
-            com.example.animelib.ui.AmbientVignetteOverlayView ambientVignetteOverlay = findViewById(R.id.ambientVignetteOverlay);
-            if (ambientVignetteOverlay != null) {
-                ambientVignetteOverlay.clearCustomVideoBounds();
-            }
             int sw = getResources().getDisplayMetrics().widthPixels;
             int sh = getResources().getDisplayMetrics().heightPixels;
-            updateAmbientPlayerTransform(sw / 2f, sh / 2f, 1f);
+            float aspect = 16f / 9f;
+            if (player != null && player.getVideoSize() != null) {
+                int vw = player.getVideoSize().width;
+                int vh = player.getVideoSize().height;
+                if (vw > 0 && vh > 0) {
+                    aspect = (float) vw / vh;
+                }
+            }
+            float screenAspect = (float) sw / sh;
+            float lsW, lsH;
+            if (screenAspect > aspect) {
+                lsH = sh;
+                lsW = sh * aspect;
+            } else {
+                lsW = sw;
+                lsH = sw / aspect;
+            }
+            float lsLeft = (sw - lsW) / 2f;
+            float lsTop = (sh - lsH) / 2f;
+
+            com.example.animelib.ui.AmbientVignetteOverlayView ambientVignetteOverlay = findViewById(R.id.ambientVignetteOverlay);
+            if (ambientVignetteOverlay != null) {
+                if (lsLeft > 1f || lsTop > 1f) {
+                    ambientVignetteOverlay.setVideoBounds(lsLeft, lsTop, lsLeft + lsW, lsTop + lsH);
+                } else {
+                    ambientVignetteOverlay.clearCustomVideoBounds();
+                }
+            }
+            updateAmbientPlayerTransform(lsLeft, lsTop, lsW, lsH);
             android.view.ViewGroup.LayoutParams rawLp = playerContainer.getLayoutParams();
             if (rawLp != null) {
                 if (rawLp.width != android.view.ViewGroup.LayoutParams.MATCH_PARENT ||
@@ -1554,23 +1583,42 @@ public class VideoPlayerActivity extends AppCompatActivity {
             } else {
                 if (isPortrait) {
                     int sbHeight = getStatusBarHeight();
-                    ambientVignetteOverlay.setVideoBounds(0, sbHeight, screenWidth, sbHeight + (screenWidth * 9 / 16));
+                    ambientVignetteOverlay.setVideoBounds(0, sbHeight, screenWidth, sbHeight + currentVideoH);
                 } else {
-                    ambientVignetteOverlay.clearCustomVideoBounds();
+                    if (currentLeft > 1f || currentTop > 1f) {
+                        ambientVignetteOverlay.setVideoBounds(currentLeft, currentTop, currentLeft + currentVideoW, currentTop + currentVideoH);
+                    } else {
+                        ambientVignetteOverlay.clearCustomVideoBounds();
+                    }
                 }
             }
         }
 
-        updateAmbientPlayerTransform(0f, 0f, 1.0f);
+        updateAmbientPlayerTransform(currentLeft, currentTop, currentVideoW, currentVideoH);
     }
 
-    private void updateAmbientPlayerTransform(float vCenterX, float vCenterY, float scaleMultiplier) {
+    private void updateAmbientPlayerTransform(float vLeft, float vTop, float vWidth, float vHeight) {
         androidx.media3.ui.PlayerView ambientPlayerView = findViewById(R.id.ambientPlayerView);
-        if (ambientPlayerView != null) {
-            ambientPlayerView.setScaleX(1.01f);
-            ambientPlayerView.setScaleY(1.01f);
-            ambientPlayerView.setTranslationX(0f);
-            ambientPlayerView.setTranslationY(0f);
+        if (ambientPlayerView != null && vWidth > 0 && vHeight > 0) {
+            android.view.ViewGroup.LayoutParams lp = ambientPlayerView.getLayoutParams();
+            int targetW = (int) Math.ceil(vWidth);
+            int targetH = (int) Math.ceil(vHeight);
+            if (lp != null && (lp.width != targetW || lp.height != targetH)) {
+                lp.width = targetW;
+                lp.height = targetH;
+                if (lp instanceof FrameLayout.LayoutParams) {
+                    ((FrameLayout.LayoutParams) lp).gravity = Gravity.TOP | Gravity.START;
+                }
+                ambientPlayerView.setLayoutParams(lp);
+            }
+            ambientPlayerView.setPivotX(vWidth / 2f);
+            ambientPlayerView.setPivotY(vHeight / 2f);
+            ambientPlayerView.setTranslationX(vLeft);
+            ambientPlayerView.setTranslationY(vTop);
+
+            // Масштабируем плеер подсветки наружу (1.30x / 1.25x), чтобы края видео распылялись в пустые области (letterbox / pillarbox)
+            ambientPlayerView.setScaleX(1.30f);
+            ambientPlayerView.setScaleY(1.25f);
         }
     }
     
