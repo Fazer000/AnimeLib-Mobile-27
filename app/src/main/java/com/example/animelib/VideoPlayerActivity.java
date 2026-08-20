@@ -1600,19 +1600,18 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private void updateAmbientPlayerTransform(float vLeft, float vTop, float vWidth, float vHeight, boolean isCroppedToVideo) {
         androidx.media3.ui.PlayerView ambientPlayerView = findViewById(R.id.ambientPlayerView);
         if (ambientPlayerView != null && vWidth > 0 && vHeight > 0) {
-            if (isCroppedToVideo) {
-                ambientPlayerView.setResizeMode(androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT);
-                android.view.ViewGroup.LayoutParams lp = ambientPlayerView.getLayoutParams();
-                int targetW = (int) Math.ceil(vWidth);
-                int targetH = (int) Math.ceil(vHeight);
-                if (lp != null && (lp.width != targetW || lp.height != targetH)) {
-                    lp.width = targetW;
-                    lp.height = targetH;
-                    if (lp instanceof FrameLayout.LayoutParams) {
-                        ((FrameLayout.LayoutParams) lp).gravity = Gravity.TOP | Gravity.START;
-                    }
-                    ambientPlayerView.setLayoutParams(lp);
+            int targetW = (int) Math.ceil(vWidth);
+            int targetH = (int) Math.ceil(vHeight);
+            android.view.ViewGroup.LayoutParams lp = ambientPlayerView.getLayoutParams();
+            if (lp != null && (lp.width != targetW || lp.height != targetH)) {
+                lp.width = targetW;
+                lp.height = targetH;
+                if (lp instanceof FrameLayout.LayoutParams) {
+                    ((FrameLayout.LayoutParams) lp).gravity = Gravity.TOP | Gravity.START;
                 }
+                ambientPlayerView.setLayoutParams(lp);
+            }
+            if (isCroppedToVideo) {
                 ambientPlayerView.setPivotX(vWidth / 2f);
                 ambientPlayerView.setPivotY(vHeight / 2f);
                 ambientPlayerView.setTranslationX(vLeft);
@@ -1621,20 +1620,6 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 ambientPlayerView.setScaleX(1.12f);
                 ambientPlayerView.setScaleY(1.12f);
             } else {
-                // В полноэкранном ландшафтном режиме растягиваем плейер подсветки на весь экран (RESIZE_MODE_FILL),
-                // чтобы размытый цвет краев видео полностью заполнял пустые боковые полосы (pillarbox / letterbox).
-                ambientPlayerView.setResizeMode(androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL);
-                android.view.ViewGroup.LayoutParams lp = ambientPlayerView.getLayoutParams();
-                int targetW = (int) Math.ceil(vWidth);
-                int targetH = (int) Math.ceil(vHeight);
-                if (lp != null && (lp.width != targetW || lp.height != targetH)) {
-                    lp.width = targetW;
-                    lp.height = targetH;
-                    if (lp instanceof FrameLayout.LayoutParams) {
-                        ((FrameLayout.LayoutParams) lp).gravity = Gravity.TOP | Gravity.START;
-                    }
-                    ambientPlayerView.setLayoutParams(lp);
-                }
                 ambientPlayerView.setPivotX(vWidth / 2f);
                 ambientPlayerView.setPivotY(vHeight / 2f);
                 ambientPlayerView.setTranslationX(0f);
@@ -1642,6 +1627,10 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
                 ambientPlayerView.setScaleX(1.0f);
                 ambientPlayerView.setScaleY(1.0f);
+            }
+
+            if (ambientLightManager != null) {
+                ambientLightManager.resume();
             }
         }
     }
@@ -2699,7 +2688,32 @@ public class VideoPlayerActivity extends AppCompatActivity {
             player.addListener(new Player.Listener() {
                 @Override
                 public void onPlaybackStateChanged(int playbackState) {
-                    episodesManager.updateEpisodeNavigationButtonsVisibility();
+                    if (episodesManager != null) {
+                        episodesManager.updateEpisodeNavigationButtonsVisibility();
+                    }
+                    if (playbackState == Player.STATE_READY && player != null && player.isPlaying()) {
+                        isVideoLoading = false;
+                    }
+                    updatePlayPauseAndLoadingState(true);
+                }
+
+                @Override
+                public void onIsLoadingChanged(boolean isLoading) {
+                    updatePlayPauseAndLoadingState(true);
+                }
+
+                @Override
+                public void onIsPlayingChanged(boolean isPlaying) {
+                    if (isPlaying) {
+                        isVideoLoading = false;
+                    }
+                    updatePlayPauseAndLoadingState(true);
+                }
+
+                @Override
+                public void onRenderedFirstFrame() {
+                    isVideoLoading = false;
+                    updatePlayPauseAndLoadingState(true);
                 }
             });
         }
@@ -6720,28 +6734,28 @@ public class VideoPlayerActivity extends AppCompatActivity {
             // Обновляем главный индикатор буферизации поверх плеера (видим всегда, в т.ч. при скрытых контролах)
             if (playerBufferingIndicator != null) {
                 if (isBuffering) {
-                    if (playerBufferingIndicator.getVisibility() != View.VISIBLE) {
-                        playerBufferingIndicator.animate().cancel();
-                        playerBufferingIndicator.setVisibility(View.VISIBLE);
-                        if (animate) {
-                            playerBufferingIndicator.setAlpha(0f);
-                            playerBufferingIndicator.setScaleX(0.75f);
-                            playerBufferingIndicator.setScaleY(0.75f);
-                            playerBufferingIndicator.animate()
-                                    .alpha(1.0f)
-                                    .scaleX(1.0f)
-                                    .scaleY(1.0f)
-                                    .setDuration(200)
-                                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                                    .start();
-                        } else {
-                            playerBufferingIndicator.setAlpha(1.0f);
-                            playerBufferingIndicator.setScaleX(1.0f);
-                            playerBufferingIndicator.setScaleY(1.0f);
-                        }
+                    playerBufferingIndicator.animate().setListener(null);
+                    playerBufferingIndicator.animate().cancel();
+                    playerBufferingIndicator.setVisibility(View.VISIBLE);
+                    if (animate && playerBufferingIndicator.getAlpha() < 0.95f) {
+                        playerBufferingIndicator.setAlpha(0f);
+                        playerBufferingIndicator.setScaleX(0.75f);
+                        playerBufferingIndicator.setScaleY(0.75f);
+                        playerBufferingIndicator.animate()
+                                .alpha(1.0f)
+                                .scaleX(1.0f)
+                                .scaleY(1.0f)
+                                .setDuration(200)
+                                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                                .start();
+                    } else {
+                        playerBufferingIndicator.setAlpha(1.0f);
+                        playerBufferingIndicator.setScaleX(1.0f);
+                        playerBufferingIndicator.setScaleY(1.0f);
                     }
                 } else {
                     if (playerBufferingIndicator.getVisibility() == View.VISIBLE) {
+                        playerBufferingIndicator.animate().setListener(null);
                         playerBufferingIndicator.animate().cancel();
                         if (animate) {
                             playerBufferingIndicator.animate()
@@ -6783,7 +6797,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
             if (play == null || pause == null) return;
 
             if (spinner != null) {
-                spinner.setVisibility(View.GONE);
+                spinner.setVisibility(isBuffering ? View.VISIBLE : View.GONE);
             }
 
             View activeView;

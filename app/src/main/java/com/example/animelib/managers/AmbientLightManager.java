@@ -103,7 +103,7 @@ public class AmbientLightManager {
         if (ambientPlayerView == null) return;
 
         ambientPlayerView.setUseController(false);
-        ambientPlayerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
+        ambientPlayerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
         ambientPlayerView.setAlpha(1.0f);
 
         // Аппаратный размытый краевой блюр GPU (Android 12+)
@@ -314,7 +314,7 @@ public class AmbientLightManager {
         mainPlayerListener = new Player.Listener() {
             @Override
             public void onIsPlayingChanged(boolean isPlaying) {
-                if (!isEnabled || isSuspended || isFrozen || ambientPlayer == null || isErrorState) return;
+                if (!isEnabled || isSuspended || isFrozen || ambientPlayer == null) return;
                 mainHandler.removeCallbacks(syncRunnable);
                 if (isPlaying) {
                     syncPositionAndSpeed();
@@ -327,32 +327,39 @@ public class AmbientLightManager {
 
             @Override
             public void onPlaybackStateChanged(int playbackState) {
-                if (!isEnabled || isSuspended || isFrozen || ambientPlayer == null || isErrorState) return;
+                if (!isEnabled || isSuspended || isFrozen || ambientPlayer == null) return;
                 if (playbackState == Player.STATE_READY) {
-                    if (!isPrepared) {
+                    if (!isPrepared || isErrorState) {
+                        isErrorState = false;
                         prepareAmbientMedia();
                     } else {
                         syncPositionAndSpeed();
-                        if (mainPlayer.isPlaying() && !ambientPlayer.isPlaying()) {
+                        if (mainPlayer.isPlaying()) {
                             ambientPlayer.play();
+                            mainHandler.removeCallbacks(syncRunnable);
+                            mainHandler.post(syncRunnable);
                         }
                     }
                 } else if (playbackState == Player.STATE_BUFFERING) {
-                    // Пауза подсветки, пока главный плеер буферизирует
                     ambientPlayer.pause();
+                    mainHandler.removeCallbacks(syncRunnable);
                 }
             }
 
             @Override
             public void onPositionDiscontinuity(Player.PositionInfo oldPosition, Player.PositionInfo newPosition, int reason) {
-                if (!isEnabled || isSuspended || isFrozen || ambientPlayer == null || isErrorState) return;
+                if (!isEnabled || isSuspended || isFrozen || ambientPlayer == null) return;
                 ambientPlayer.seekTo(mainPlayer.getCurrentPosition());
                 syncPositionAndSpeed();
+                if (mainPlayer.isPlaying()) {
+                    mainHandler.removeCallbacks(syncRunnable);
+                    mainHandler.post(syncRunnable);
+                }
             }
 
             @Override
             public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
-                if (!isEnabled || isSuspended || isFrozen || ambientPlayer == null || isErrorState) return;
+                if (!isEnabled || isSuspended || isFrozen || ambientPlayer == null) return;
                 syncPositionAndSpeed();
             }
         };
@@ -366,12 +373,10 @@ public class AmbientLightManager {
         ambientPlayerListener = new Player.Listener() {
             @Override
             public void onPlayerError(PlaybackException error) {
-                Log.w(TAG, "Ambient player encountered playback error: " + error.getMessage() + ". Disabling ambient player safely.");
+                Log.w(TAG, "Ambient player encountered playback error: " + error.getMessage() + ". Retrying softly.");
                 isErrorState = true;
-                mainHandler.post(() -> {
-                    if (ambientPlayerView != null) ambientPlayerView.setVisibility(View.GONE);
-                    pauseAmbientPlayer();
-                });
+                mainHandler.removeCallbacks(syncRunnable);
+                pauseAmbientPlayer();
             }
         };
 
