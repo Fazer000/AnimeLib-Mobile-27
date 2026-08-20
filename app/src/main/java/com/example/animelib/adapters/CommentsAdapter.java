@@ -65,6 +65,7 @@ public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.Commen
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
 
     // Source storage
+    private final List<CommentsResponse.CommentItem> stickyRoots = new ArrayList<>();
     private final Map<Long, CommentsResponse.CommentItem> allById = new HashMap<>();
     private final List<CommentsResponse.CommentItem> roots = new ArrayList<>();
     private final Map<Long, List<CommentsResponse.CommentItem>> childrenByParentId = new HashMap<>();
@@ -74,12 +75,32 @@ public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.Commen
     private final Map<Long, CharSequence> simpleSpannedCache = new HashMap<>();
 
     public void clearAll() {
+        stickyRoots.clear();
         allById.clear();
         roots.clear();
         childrenByParentId.clear();
         flat.clear();
         simpleSpannedCache.clear();
         notifyDataSetChanged();
+    }
+
+    public void setStickyComments(List<CommentsResponse.CommentItem> stickyComments) {
+        stickyRoots.clear();
+        if (stickyComments != null) {
+            for (CommentsResponse.CommentItem item : stickyComments) {
+                if (item != null) {
+                    item.setSticky(true);
+                    if (!allById.containsKey(item.getId())) {
+                        allById.put(item.getId(), item);
+                    } else {
+                        CommentsResponse.CommentItem existing = allById.get(item.getId());
+                        if (existing != null) existing.setSticky(true);
+                    }
+                    stickyRoots.add(item);
+                }
+            }
+        }
+        rebuildFlat(-1);
     }
 
     public void appendResponse(CommentsResponse response, boolean append) {
@@ -89,6 +110,12 @@ public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.Commen
             childrenByParentId.clear();
             flat.clear();
             simpleSpannedCache.clear();
+            for (CommentsResponse.CommentItem s : stickyRoots) {
+                if (s != null) {
+                    s.setSticky(true);
+                    allById.put(s.getId(), s);
+                }
+            }
         }
 
         if (response == null || response.getData() == null) {
@@ -105,8 +132,15 @@ public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.Commen
 
         if (newRoots != null) {
             for (CommentsResponse.CommentItem r : newRoots) {
-                if (r == null || allById.containsKey(r.getId())) continue;
-                allById.put(r.getId(), r);
+                if (r == null) continue;
+                if (allById.containsKey(r.getId())) {
+                    CommentsResponse.CommentItem existing = allById.get(r.getId());
+                    if (existing != null && existing.isSticky()) {
+                        continue;
+                    }
+                } else {
+                    allById.put(r.getId(), r);
+                }
                 roots.add(r);
             }
         }
@@ -131,6 +165,9 @@ public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.Commen
 
     private void rebuildFlat(int previousFlatSize) {
         flat.clear();
+        for (CommentsResponse.CommentItem sticky : stickyRoots) {
+            addWithChildren(sticky, 0);
+        }
         for (CommentsResponse.CommentItem root : roots) {
             addWithChildren(root, 0);
         }
@@ -397,6 +434,17 @@ public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.Commen
             avatarUrl = item.getUser().getAvatar().getUrl();
         }
         ImageLoader.getInstance().loadInto(holder.avatarView, avatarUrl, R.drawable.ic_avatar_placeholder);
+
+        // Sticky comment badge & highlight
+        boolean isSticky = item.isSticky();
+        if (holder.stickyBadgeContainer != null) {
+            holder.stickyBadgeContainer.setVisibility(isSticky ? View.VISIBLE : View.GONE);
+        }
+        if (isSticky) {
+            holder.itemView.setBackgroundColor(android.graphics.Color.parseColor("#188852DE"));
+        } else {
+            holder.itemView.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        }
     }
 
     private Integer getUserVoteValue(CommentsResponse.Votes votes) {
@@ -517,6 +565,7 @@ public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.Commen
     }
 
     public static class CommentVH extends RecyclerView.ViewHolder {
+        View stickyBadgeContainer;
         ImageView avatarView;
         TextView usernameView;
         TextView replyToView;
@@ -546,6 +595,7 @@ public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.Commen
 
         public CommentVH(@NonNull View itemView) {
             super(itemView);
+            stickyBadgeContainer = itemView.findViewById(R.id.stickyBadgeContainer);
             avatarView = itemView.findViewById(R.id.avatarView);
             usernameView = itemView.findViewById(R.id.usernameView);
             replyToView = itemView.findViewById(R.id.replyToView);

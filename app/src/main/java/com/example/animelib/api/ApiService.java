@@ -10,6 +10,8 @@ import com.example.animelib.data.entity.TokenEntity;
 import com.example.animelib.models.*;
 import com.google.gson.Gson;
 import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import okhttp3.Call;
@@ -57,6 +59,11 @@ public class ApiService {
     
     public interface EpisodeCommentsCallback {
         void onCommentsReceived(CommentsResponse response);
+        void onError(String error);
+    }
+
+    public interface StickyCommentsCallback {
+        void onStickyCommentsReceived(List<CommentsResponse.CommentItem> stickyComments);
         void onError(String error);
     }
 
@@ -508,6 +515,50 @@ public class ApiService {
                         try {
                             CommentsResponse comments = gson.fromJson(body, CommentsResponse.class);
                             safeRunOnUiThread(() -> callback.onCommentsReceived(comments));
+                        } catch (Exception ex) {
+                            safeRunOnUiThread(() -> callback.onError("Ошибка парсинга"));
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                safeRunOnUiThread(() -> callback.onError("Ошибка запроса: " + e.getMessage()));
+            }
+        });
+    }
+
+    public void fetchStickyComments(long episodeId, StickyCommentsCallback callback) {
+        safeExecute(() -> {
+            try {
+                String apiUrl = "https://hapi.hentaicdn.org/api/comments/sticky?post_id=" + episodeId + "&post_type=episodes";
+                Request request = buildApiRequest(apiUrl).build();
+
+                httpClient.newCall(request).enqueue(new Callback() {
+                    @Override
+                    public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                        safeRunOnUiThread(() -> callback.onError("Ошибка сети: " + e.getMessage()));
+                    }
+
+                    @Override
+                    public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                        if (!response.isSuccessful()) {
+                            safeRunOnUiThread(() -> callback.onError("HTTP " + response.code()));
+                            return;
+                        }
+                        if (response.body() == null) {
+                            safeRunOnUiThread(() -> callback.onError("Пустой ответ сервера"));
+                            return;
+                        }
+                        String body = response.body().string();
+                        try {
+                            com.example.animelib.models.StickyCommentsResponse stickyResp = gson.fromJson(body, com.example.animelib.models.StickyCommentsResponse.class);
+                            List<CommentsResponse.CommentItem> list = (stickyResp != null && stickyResp.getData() != null)
+                                    ? stickyResp.getData() : new ArrayList<>();
+                            for (CommentsResponse.CommentItem item : list) {
+                                if (item != null) {
+                                    item.setSticky(true);
+                                }
+                            }
+                            safeRunOnUiThread(() -> callback.onStickyCommentsReceived(list));
                         } catch (Exception ex) {
                             safeRunOnUiThread(() -> callback.onError("Ошибка парсинга"));
                         }

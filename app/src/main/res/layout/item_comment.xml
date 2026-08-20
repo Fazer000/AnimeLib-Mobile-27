@@ -25,6 +25,37 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
+        <!-- Sticky Badge -->
+        <LinearLayout
+            android:id="@+id/stickyBadgeContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="6dp"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="3dp"
+            android:background="@drawable/bg_quality_badge"
+            android:backgroundTint="#268852DE"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="13dp"
+                android:layout_height="13dp"
+                android:src="@drawable/ic_pin"
+                app:tint="@color/purple_primary"
+                android:layout_marginEnd="5dp"/>
+
+            <TextView
+                android:id="@+id/tvStickyBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Закреплённый комментарий"
+                android:textColor="@color/purple_primary"
+                android:textSize="11.5sp"
+                android:fontFamily="@font/open_sans_bold"/>
+        </LinearLayout>
+
         <!-- Header: Avatar + User Info -->
         <LinearLayout
             android:layout_width="match_parent"

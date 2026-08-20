@@ -90,13 +90,6 @@ public class DebandingOverlayView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (intensity > 0.001f && getVisibility() == VISIBLE) {
-            if (sharedShader != null) {
-                frameOffset = (frameOffset + 1) % 16;
-                float dx = (frameOffset % 4) * 31.0f;
-                float dy = (frameOffset / 4) * 17.0f;
-                shaderMatrix.setTranslate(dx, dy);
-                sharedShader.setLocalMatrix(shaderMatrix);
-            }
             canvas.drawRect(0, 0, getWidth(), getHeight(), ditherPaint);
         }
     }

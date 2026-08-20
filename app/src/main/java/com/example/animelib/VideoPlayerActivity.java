@@ -216,6 +216,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private View skipIndicatorRight;
     private View playerBufferingIndicator;
     private volatile boolean isVideoLoading = false;
+    private volatile boolean isSeeking = false;
 
     // Comments manager
     private CommentsManager commentsManager;
@@ -2477,6 +2478,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                         if (controllerView.getAlpha() == 0.0f) {
                             controllerView.setVisibility(View.GONE);
                         }
+                        updatePlayPauseAndLoadingState(true);
                     })
                     .start();
 
@@ -2490,6 +2492,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                         .start();
             }
         }
+        updatePlayPauseAndLoadingState(true);
     }
     
     
@@ -2691,7 +2694,13 @@ public class VideoPlayerActivity extends AppCompatActivity {
                     if (episodesManager != null) {
                         episodesManager.updateEpisodeNavigationButtonsVisibility();
                     }
-                    if (playbackState == Player.STATE_READY && player != null && player.isPlaying()) {
+                    if (playbackState == Player.STATE_READY) {
+                        isSeeking = false;
+                        if (player != null && player.isPlaying()) {
+                            isVideoLoading = false;
+                        }
+                    } else if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
+                        isSeeking = false;
                         isVideoLoading = false;
                     }
                     updatePlayPauseAndLoadingState(true);
@@ -2705,14 +2714,29 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 @Override
                 public void onIsPlayingChanged(boolean isPlaying) {
                     if (isPlaying) {
+                        isSeeking = false;
                         isVideoLoading = false;
                     }
                     updatePlayPauseAndLoadingState(true);
                 }
 
                 @Override
+                public void onPositionDiscontinuity(@NonNull Player.PositionInfo oldPosition, @NonNull Player.PositionInfo newPosition, int reason) {
+                    if (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) {
+                        isSeeking = true;
+                    }
+                    updatePlayPauseAndLoadingState(true);
+                }
+
+                @Override
                 public void onRenderedFirstFrame() {
+                    isSeeking = false;
                     isVideoLoading = false;
+                    updatePlayPauseAndLoadingState(true);
+                }
+
+                @Override
+                public void onEvents(@NonNull Player player, @NonNull Player.Events events) {
                     updatePlayPauseAndLoadingState(true);
                 }
             });
@@ -6612,15 +6636,19 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 public void onPlaybackStateChanged(int playbackState) {
                     Log.d("PlayerControls", "Playback state changed: " + playbackState);
                     if (playbackState == Player.STATE_READY) {
+                        isSeeking = false;
                         if (player != null && player.isPlaying()) {
                             isVideoLoading = false;
                         }
-                    } else if (playbackState == Player.STATE_ENDED) {
+                    } else if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
+                        isSeeking = false;
                         isVideoLoading = false;
                     }
                     updatePlayerControlsState();
-                    episodesManager.updateEpisodeNavigationButtonsVisibility();
-                    updatePlayLoadingIndicator(playbackState);
+                    if (episodesManager != null) {
+                        episodesManager.updateEpisodeNavigationButtonsVisibility();
+                    }
+                    updatePlayPauseAndLoadingState(true);
 
                     // Handle auto-play next episode
                     if (playbackState == Player.STATE_ENDED && autoPlay) {
@@ -6637,8 +6665,17 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 }
 
                 @Override
+                public void onPositionDiscontinuity(@NonNull Player.PositionInfo oldPosition, @NonNull Player.PositionInfo newPosition, int reason) {
+                    if (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) {
+                        isSeeking = true;
+                    }
+                    updatePlayPauseAndLoadingState(true);
+                }
+
+                @Override
                 public void onRenderedFirstFrame() {
                     Log.d("PlayerControls", "First frame rendered!");
+                    isSeeking = false;
                     isVideoLoading = false;
                     updatePlayPauseAndLoadingState(true);
                 }
@@ -6652,6 +6689,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 public void onIsPlayingChanged(boolean isPlaying) {
                     Log.d("PlayerControls", "Is playing changed: " + isPlaying);
                     if (isPlaying) {
+                        isSeeking = false;
                         isVideoLoading = false;
                     }
                     updatePlayerControlsState();
@@ -6664,8 +6702,14 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 @Override
                 public void onPlayerError(@NonNull PlaybackException error) {
                     Log.e("PlayerControls", "Player error: " + error.getMessage());
+                    isSeeking = false;
                     isVideoLoading = false;
                     updatePlayerControlsState();
+                    updatePlayPauseAndLoadingState(true);
+                }
+
+                @Override
+                public void onEvents(@NonNull Player player, @NonNull Player.Events events) {
                     updatePlayPauseAndLoadingState(true);
                 }
             });

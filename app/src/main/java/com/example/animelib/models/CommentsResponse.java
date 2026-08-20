@@ -40,6 +40,8 @@ public class CommentsResponse {
         private long relation_id;
         private User user;
         private Votes votes;
+        private StickyInfo sticky_info;
+        private boolean isSticky;
 
         public long getId() { return id; }
         public Long getRoot_id() { return root_id; }
@@ -54,6 +56,20 @@ public class CommentsResponse {
         public User getUser() { return user; }
         public Votes getVotes() { return votes; }
         public void setVotes(Votes votes) { this.votes = votes; }
+        public StickyInfo getSticky_info() { return sticky_info; }
+        public void setSticky_info(StickyInfo sticky_info) { this.sticky_info = sticky_info; }
+        public boolean isSticky() { return isSticky || sticky_info != null; }
+        public void setSticky(boolean sticky) { isSticky = sticky; }
+    }
+
+    public static class StickyInfo {
+        private Object team;
+        private String sticky_at;
+        private boolean without_limit;
+
+        public Object getTeam() { return team; }
+        public String getSticky_at() { return sticky_at; }
+        public boolean isWithout_limit() { return without_limit; }
     }
 
     public static class User {

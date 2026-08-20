@@ -737,6 +737,26 @@ public class CommentsManager {
         }
         
         long episodeId = currentEpisode.getId();
+        if (page == 1) {
+            apiService.fetchStickyComments(episodeId, new ApiService.StickyCommentsCallback() {
+                @Override
+                public void onStickyCommentsReceived(List<CommentsResponse.CommentItem> stickyComments) {
+                    safeRunOnUiThread(() -> {
+                        if (commentsAdapter != null) {
+                            commentsAdapter.setStickyComments(stickyComments);
+                        }
+                        if (portraitCommentsAdapter != null) {
+                            portraitCommentsAdapter.setStickyComments(stickyComments);
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    Log.d(TAG, "Sticky comments error or none: " + error);
+                }
+            });
+        }
         apiService.fetchEpisodeComments(episodeId, commentsSortType, page, 
             new ApiService.EpisodeCommentsCallback() {
             @Override
