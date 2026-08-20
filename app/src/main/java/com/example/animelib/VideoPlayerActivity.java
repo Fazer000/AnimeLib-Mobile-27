@@ -6759,11 +6759,10 @@ public class VideoPlayerActivity extends AppCompatActivity {
             boolean isBuffering = !isPlaying && !isPausedByUser && !isEnded && !isIdleEmpty;
 
             boolean showBuffering = isBuffering && (loadingOverlay == null || loadingOverlay.getVisibility() != View.VISIBLE);
-            boolean showStandaloneBuffering = showBuffering && !isControllerVisible;
 
-            // Обновляем главный индикатор буферизации поверх плеера (видим при скрытых контролах)
+            // ЕДИНЫЙ индикатор буферизации поверх плеера и контролов
             if (playerBufferingIndicator != null) {
-                if (showStandaloneBuffering) {
+                if (showBuffering) {
                     playerBufferingIndicator.animate().setListener(null);
                     playerBufferingIndicator.animate().cancel();
                     playerBufferingIndicator.setVisibility(View.VISIBLE);
@@ -6822,20 +6821,12 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
             View play = controllerView.findViewById(R.id.btnPlayerPlay);
             View pause = controllerView.findViewById(R.id.btnPlayerPause);
-            View spinner = controllerView.findViewById(R.id.playLoadingIndicator);
 
             if (play == null || pause == null) return;
 
-            View activeView;
-            if (isBuffering) {
-                activeView = spinner;
-            } else if (isPlaying) {
-                activeView = pause;
-            } else {
-                activeView = play;
-            }
+            View activeView = isPlaying ? pause : (isBuffering ? null : play);
 
-            View[] allViews = new View[]{play, pause, spinner};
+            View[] allViews = new View[]{play, pause};
 
             for (View v : allViews) {
                 if (v == null) continue;
