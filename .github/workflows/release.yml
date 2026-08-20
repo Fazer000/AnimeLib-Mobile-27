@@ -72,7 +72,7 @@ jobs:
         fi
         echo "Current app versionName in build.gradle: $CURRENT_VERSION"
 
-        # Calculate +0.0.1 patch bump
+        # Calculate +0.0.1 patch bump for GitHub Release tag only
         IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
         MAJOR=${MAJOR:-1}
         MINOR=${MINOR:-8}
@@ -81,11 +81,8 @@ jobs:
         NEW_VERSION_NAME="${MAJOR}.${MINOR}.${NEW_PATCH}"
         NEW_TAG="v${NEW_VERSION_NAME}"
 
-        echo "Release Version (+0.0.1): $NEW_VERSION_NAME"
-        echo "Release Tag: $NEW_TAG"
-
-        # Temporarily update app/build.gradle so compiled APK gets the new release versionName
-        sed -i -E "s/versionName \"[^\"]+\"/versionName \"$NEW_VERSION_NAME\"/" app/build.gradle
+        echo "App Base Version: $CURRENT_VERSION"
+        echo "GitHub Release Tag (+0.0.1): $NEW_TAG"
 
         echo "tag_name=$NEW_TAG" >> $GITHUB_OUTPUT
         echo "version_name=$NEW_VERSION_NAME" >> $GITHUB_OUTPUT
