@@ -38,10 +38,18 @@ public class VideoFiltersManager {
     public void applyFilters() {
         if (targetView == null) return;
 
+        // Ensure root player view (and its controller UI) never holds a layer filter
+        if (targetView instanceof androidx.media3.ui.PlayerView) {
+            targetView.setLayerType(View.LAYER_TYPE_NONE, null);
+        }
+
+        View actualTarget = getActualTargetView();
+        if (actualTarget == null) return;
+
         boolean isDefault = (brightness == 0f && contrast == 100f && saturation == 100f && gamma == 1.0f && hue == 0f);
 
         if (isDefault) {
-            targetView.setLayerType(View.LAYER_TYPE_NONE, null);
+            actualTarget.setLayerType(View.LAYER_TYPE_NONE, null);
             return;
         }
 
@@ -76,7 +84,23 @@ public class VideoFiltersManager {
         ColorMatrixColorFilter filter = new ColorMatrixColorFilter(cm);
         filterPaint.setColorFilter(filter);
 
-        targetView.setLayerType(View.LAYER_TYPE_HARDWARE, filterPaint);
+        actualTarget.setLayerType(View.LAYER_TYPE_HARDWARE, filterPaint);
+    }
+
+    private View getActualTargetView() {
+        if (targetView == null) return null;
+        if (targetView instanceof androidx.media3.ui.PlayerView) {
+            androidx.media3.ui.PlayerView pv = (androidx.media3.ui.PlayerView) targetView;
+            View videoSurface = pv.getVideoSurfaceView();
+            if (videoSurface != null) {
+                return videoSurface;
+            }
+            View contentFrame = pv.findViewById(androidx.media3.ui.R.id.exo_content_frame);
+            if (contentFrame != null) {
+                return contentFrame;
+            }
+        }
+        return targetView;
     }
 
     private static void adjustHue(ColorMatrix cm, float value) {

@@ -30,19 +30,9 @@ public class DebandingManager {
             "half4 main(float2 fragCoord) {\n" +
             "    half4 color = composer.eval(fragCoord);\n" +
             "    if (in_debandStrength <= 0.001) return color;\n" +
-            "    float2 step = float2(2.0, 2.0);\n" +
-            "    half4 cUp    = composer.eval(fragCoord + float2(0.0, -step.y));\n" +
-            "    half4 cDown  = composer.eval(fragCoord + float2(0.0, step.y));\n" +
-            "    half4 cLeft  = composer.eval(fragCoord + float2(-step.x, 0.0));\n" +
-            "    half4 cRight = composer.eval(fragCoord + float2(step.x, 0.0));\n" +
-            "    half4 avgColor = (color + cUp + cDown + cLeft + cRight) * 0.2;\n" +
-            "    half diff = max(max(abs(color.r - avgColor.r), abs(color.g - avgColor.g)), abs(color.b - avgColor.b));\n" +
-            "    if (diff < 0.09) {\n" +
-            "        float n = fract(sin(dot(fragCoord, float2(12.9898, 78.233))) * 43758.5453);\n" +
-            "        float dither = (n - 0.5) * 0.02 * in_debandStrength;\n" +
-            "        half factor = clamp(1.0 - (diff / 0.09), 0.0, 1.0) * in_debandStrength;\n" +
-            "        color.rgb = mix(color.rgb, avgColor.rgb, factor * 0.7) + float3(dither);\n" +
-            "    }\n" +
+            "    float n = fract(sin(dot(fragCoord, float2(12.9898, 78.233))) * 43758.5453);\n" +
+            "    float dither = (n - 0.5) * 0.008 * in_debandStrength;\n" +
+            "    color.rgb = clamp(color.rgb + float3(dither), 0.0, 1.0);\n" +
             "    return color;\n" +
             "}\n";
 
@@ -85,13 +75,13 @@ public class DebandingManager {
     private void applyDebandingState() {
         boolean active = isEnabled && strength > 0.001f;
 
-        if (debandingOverlayView != null) {
-            debandingOverlayView.setVisibility(active ? View.VISIBLE : View.GONE);
-            debandingOverlayView.setIntensity(active ? strength : 0.0f);
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // AGSL is supported and highly optimized (1 texture fetch, minimal GPU load)
+            if (debandingOverlayView != null) {
+                debandingOverlayView.setVisibility(View.GONE);
+            }
 
-        if (playerView != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (playerView != null) {
                 try {
                     if (active) {
                         RuntimeShader shader = new RuntimeShader(AGSL_DEBAND_SHADER);
@@ -103,7 +93,22 @@ public class DebandingManager {
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "Failed to apply AGSL Deband RenderEffect", e);
+                    if (debandingOverlayView != null) {
+                        debandingOverlayView.setVisibility(active ? View.VISIBLE : View.GONE);
+                        debandingOverlayView.setIntensity(active ? strength : 0.0f);
+                    }
                 }
+            }
+        } else {
+            // Fallback for older Android versions
+            if (playerView != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    playerView.setRenderEffect(null);
+                }
+            }
+            if (debandingOverlayView != null) {
+                debandingOverlayView.setVisibility(active ? View.VISIBLE : View.GONE);
+                debandingOverlayView.setIntensity(active ? strength : 0.0f);
             }
         }
     }

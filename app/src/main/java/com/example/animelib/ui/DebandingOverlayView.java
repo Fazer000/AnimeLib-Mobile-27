@@ -23,8 +23,10 @@ import java.util.Random;
  */
 public class DebandingOverlayView extends View {
 
-    private final Paint ditherPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
-    private Bitmap ditherTile;
+    private static Bitmap sharedDitherTile = null;
+    private static BitmapShader sharedShader = null;
+
+    private final Paint ditherPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
     private float intensity = 1.0f; // 0.0f (выкл) .. 1.0f (макс)
 
     public DebandingOverlayView(Context context) {
@@ -42,35 +44,34 @@ public class DebandingOverlayView extends View {
 
     private void init() {
         setLayerType(LAYER_TYPE_HARDWARE, null);
-        generateDitherTile();
+        ensureDitherTile();
+        if (sharedShader != null) {
+            ditherPaint.setShader(sharedShader);
+        }
+        ditherPaint.setAlpha((int) (22 * intensity));
     }
 
-    /**
-     * Генерация 128x128 симулятора синего шума (High-Pass Blue Noise Tile)
-     */
-    private void generateDitherTile() {
-        int tileSize = 128;
-        ditherTile = Bitmap.createBitmap(tileSize, tileSize, Bitmap.Config.ARGB_8888);
+    private static synchronized void ensureDitherTile() {
+        if (sharedDitherTile != null && !sharedDitherTile.isRecycled()) return;
+
+        int tileSize = 64;
+        sharedDitherTile = Bitmap.createBitmap(tileSize, tileSize, Bitmap.Config.ARGB_8888);
         int[] pixels = new int[tileSize * tileSize];
-        Random random = new Random(42); // Фиксированный сид для детерминированного равномерного шума
+        Random random = new Random(42);
 
         for (int y = 0; y < tileSize; y++) {
             for (int x = 0; x < tileSize; x++) {
-                // Использовать байеровскую пространственную матрицу + гауссов шум
                 int bayerVal = ((x ^ y) * 149 + (x & 3) * 31 + (y & 3) * 17) & 0xFF;
-                float rNoise = (random.nextFloat() - 0.5f) * 12.0f;
-                int noise = Math.max(-20, Math.min(20, (int) ((bayerVal - 128) * 0.15f + rNoise)));
+                float rNoise = (random.nextFloat() - 0.5f) * 10.0f;
+                int noise = Math.max(-16, Math.min(16, (int) ((bayerVal - 128) * 0.12f + rNoise)));
 
-                int alpha = Math.min(255, Math.max(0, 16 + Math.abs(noise)));
+                int alpha = Math.min(255, Math.max(0, 14 + Math.abs(noise)));
                 int val = noise >= 0 ? 255 : 0;
                 pixels[y * tileSize + x] = Color.argb(alpha, val, val, val);
             }
         }
-        ditherTile.setPixels(pixels, 0, tileSize, 0, 0, tileSize, tileSize);
-
-        BitmapShader shader = new BitmapShader(ditherTile, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT);
-        ditherPaint.setShader(shader);
-        ditherPaint.setAlpha((int) (22 * intensity)); // Мягкая прозрачность для сглаживания ступенек без ухудшения четкости
+        sharedDitherTile.setPixels(pixels, 0, tileSize, 0, 0, tileSize, tileSize);
+        sharedShader = new BitmapShader(sharedDitherTile, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT);
     }
 
     public void setIntensity(float intensity) {
@@ -94,9 +95,5 @@ public class DebandingOverlayView extends View {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        if (ditherTile != null && !ditherTile.isRecycled()) {
-            ditherTile.recycle();
-            ditherTile = null;
-        }
     }
 }
