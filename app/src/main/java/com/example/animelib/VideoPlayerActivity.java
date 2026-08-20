@@ -214,6 +214,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private ImageButton bookmarkButton;
     private View skipIndicatorLeft;
     private View skipIndicatorRight;
+    private View playerBufferingIndicator;
 
     // Comments manager
     private CommentsManager commentsManager;
@@ -1176,6 +1177,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
         this.pipButton = pipButton;
         this.skipIndicatorLeft = skipIndicatorLeft;
         this.skipIndicatorRight = skipIndicatorRight;
+        this.playerBufferingIndicator = findViewById(R.id.playerBufferingIndicator);
     }
     
     /**
@@ -6586,9 +6588,15 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 }
 
                 @Override
+                public void onIsLoadingChanged(boolean isLoading) {
+                    updatePlayPauseAndLoadingState(true);
+                }
+
+                @Override
                 public void onIsPlayingChanged(boolean isPlaying) {
                     Log.d("PlayerControls", "Is playing changed: " + isPlaying);
                     updatePlayerControlsState();
+                    updatePlayPauseAndLoadingState(true);
                     if (isInPictureInPictureMode) {
                         updatePictureInPictureParams();
                     }
@@ -6598,6 +6606,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 public void onPlayerError(@NonNull PlaybackException error) {
                     Log.e("PlayerControls", "Player error: " + error.getMessage());
                     updatePlayerControlsState();
+                    updatePlayPauseAndLoadingState(true);
                 }
             });
         }
@@ -6654,6 +6663,64 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
     private void updatePlayPauseAndLoadingState(boolean animate) {
         runOnUiThread(() -> {
+            boolean isBuffering = (player != null) && (player.getPlaybackState() == Player.STATE_BUFFERING);
+            boolean isPlaying = (player != null) && (player.isPlaying() || player.getPlayWhenReady());
+
+            // Обновляем главный индикатор буферизации поверх плеера (видим всегда, в т.ч. при скрытых контролах)
+            if (playerBufferingIndicator != null) {
+                if (isBuffering) {
+                    if (playerBufferingIndicator.getVisibility() != View.VISIBLE) {
+                        playerBufferingIndicator.animate().cancel();
+                        playerBufferingIndicator.setVisibility(View.VISIBLE);
+                        if (animate) {
+                            playerBufferingIndicator.setAlpha(0f);
+                            playerBufferingIndicator.setScaleX(0.75f);
+                            playerBufferingIndicator.setScaleY(0.75f);
+                            playerBufferingIndicator.animate()
+                                    .alpha(1.0f)
+                                    .scaleX(1.0f)
+                                    .scaleY(1.0f)
+                                    .setDuration(200)
+                                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                                    .start();
+                        } else {
+                            playerBufferingIndicator.setAlpha(1.0f);
+                            playerBufferingIndicator.setScaleX(1.0f);
+                            playerBufferingIndicator.setScaleY(1.0f);
+                        }
+                    }
+                } else {
+                    if (playerBufferingIndicator.getVisibility() == View.VISIBLE) {
+                        playerBufferingIndicator.animate().cancel();
+                        if (animate) {
+                            playerBufferingIndicator.animate()
+                                    .alpha(0.0f)
+                                    .scaleX(0.75f)
+                                    .scaleY(0.75f)
+                                    .setDuration(160)
+                                    .setInterpolator(new android.view.animation.AccelerateInterpolator())
+                                    .setListener(new android.animation.AnimatorListenerAdapter() {
+                                        @Override
+                                        public void onAnimationEnd(android.animation.Animator animation) {
+                                            if (playerBufferingIndicator != null) {
+                                                playerBufferingIndicator.setVisibility(View.GONE);
+                                                playerBufferingIndicator.setAlpha(1.0f);
+                                                playerBufferingIndicator.setScaleX(1.0f);
+                                                playerBufferingIndicator.setScaleY(1.0f);
+                                            }
+                                        }
+                                    })
+                                    .start();
+                        } else {
+                            playerBufferingIndicator.setVisibility(View.GONE);
+                            playerBufferingIndicator.setAlpha(1.0f);
+                            playerBufferingIndicator.setScaleX(1.0f);
+                            playerBufferingIndicator.setScaleY(1.0f);
+                        }
+                    }
+                }
+            }
+
             if (playerView == null) return;
             View controllerView = playerView.findViewById(R.id.exo_controller);
             if (controllerView == null) return;
@@ -6662,21 +6729,22 @@ public class VideoPlayerActivity extends AppCompatActivity {
             View pause = controllerView.findViewById(R.id.exo_pause);
             View spinner = controllerView.findViewById(R.id.playLoadingIndicator);
 
-            if (play == null || pause == null || spinner == null) return;
+            if (play == null || pause == null) return;
 
-            boolean isBuffering = (player != null) && (player.getPlaybackState() == Player.STATE_BUFFERING);
-            boolean isPlaying = (player != null) && (player.isPlaying() || player.getPlayWhenReady());
+            if (spinner != null) {
+                spinner.setVisibility(View.GONE);
+            }
 
             View activeView;
             if (isBuffering) {
-                activeView = spinner;
+                activeView = null;
             } else if (isPlaying) {
                 activeView = pause;
             } else {
                 activeView = play;
             }
 
-            View[] allViews = new View[]{play, pause, spinner};
+            View[] allViews = new View[]{play, pause};
 
             for (View v : allViews) {
                 if (v == activeView) {
