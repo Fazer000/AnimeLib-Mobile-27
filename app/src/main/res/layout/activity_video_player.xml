@@ -105,13 +105,16 @@
                 android:visibility="gone" />
 
             <!-- Standalone Buffering Indicator (Always visible when buffering, even when controls are hidden) -->
-            <ProgressBar
+            <com.google.android.material.progressindicator.CircularProgressIndicator
                 android:id="@+id/playerBufferingIndicator"
-                android:layout_width="52dp"
-                android:layout_height="52dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:indeterminate="true"
-                android:indeterminateTint="?attr/secondaryColor"
+                app:indicatorColor="?attr/secondaryColor"
+                app:trackCornerRadius="8dp"
+                app:trackThickness="4dp"
+                app:indicatorSize="52dp"
                 android:visibility="gone"
                 android:clickable="false"
                 android:focusable="false"

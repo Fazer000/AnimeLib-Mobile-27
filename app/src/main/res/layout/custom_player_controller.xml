@@ -210,13 +210,16 @@
                 android:clickable="true"
                 android:focusable="true" />
 
-            <ProgressBar
+            <com.google.android.material.progressindicator.CircularProgressIndicator
                 android:id="@+id/playLoadingIndicator"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:indeterminate="true"
-                android:indeterminateTint="?attr/secondaryColor"
+                app:indicatorColor="?attr/secondaryColor"
+                app:trackCornerRadius="8dp"
+                app:trackThickness="4dp"
+                app:indicatorSize="44dp"
                 android:visibility="gone"
                 android:clickable="false"
                 android:focusable="false" />

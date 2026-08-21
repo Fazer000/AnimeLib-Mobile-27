@@ -65,29 +65,59 @@ public class ImageLoader {
     }
 
     public void loadInto(ImageView imageView, String url, int placeholderResId) {
+        if (imageView == null) return;
         int placeholder = placeholderResId != 0 ? placeholderResId : R.drawable.skeleton_placeholder;
-        imageView.setImageResource(placeholder);
-        if (url == null || url.isEmpty()) return;
 
-        imageView.setTag(url);
-        Bitmap cached = memoryCache.get(url);
-        if (cached != null) {
-            imageView.setImageBitmap(cached);
+        // Check memory cache first
+        if (url != null && !url.isEmpty()) {
+            Bitmap cached = memoryCache.get(url);
+            if (cached != null) {
+                stopShimmerIfPresent(imageView);
+                imageView.setImageBitmap(cached);
+                return;
+            }
+        }
+
+        if (url == null || url.isEmpty()) {
+            stopShimmerIfPresent(imageView);
+            imageView.setImageResource(placeholder);
             return;
         }
+
+        // Show animated rounded skeleton shimmer while loading
+        try {
+            boolean isDark = CustomToast.isDarkTheme(imageView.getContext());
+            SkeletonHelper.SkeletonShimmerDrawable shimmer = new SkeletonHelper.SkeletonShimmerDrawable(8f, isDark);
+            imageView.setImageDrawable(shimmer);
+        } catch (Exception e) {
+            imageView.setImageResource(placeholder);
+        }
+
+        imageView.setTag(url);
 
         executor.submit(() -> {
             Bitmap bitmap = downloadBitmap(url);
             if (bitmap != null) memoryCache.put(url, bitmap);
             mainHandler.post(() -> {
                 Object tag = imageView.getTag();
-                if (tag != null && tag.equals(url) && bitmap != null) {
-                    imageView.setAlpha(0f);
-                    imageView.setImageBitmap(bitmap);
-                    imageView.animate().alpha(1f).setDuration(200).start();
+                if (tag != null && tag.equals(url)) {
+                    stopShimmerIfPresent(imageView);
+                    if (bitmap != null) {
+                        imageView.setAlpha(0f);
+                        imageView.setImageBitmap(bitmap);
+                        imageView.animate().alpha(1f).setDuration(200).start();
+                    } else {
+                        imageView.setImageResource(placeholder);
+                    }
                 }
             });
         });
+    }
+
+    private void stopShimmerIfPresent(ImageView imageView) {
+        if (imageView != null && imageView.getDrawable() instanceof SkeletonHelper.SkeletonShimmerDrawable) {
+            ((SkeletonHelper.SkeletonShimmerDrawable) imageView.getDrawable()).stopAnimation();
+        }
     }
 
     private Bitmap downloadBitmap(String src) {

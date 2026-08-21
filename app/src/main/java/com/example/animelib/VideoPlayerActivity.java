@@ -217,6 +217,8 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private View playerBufferingIndicator;
     private volatile boolean isVideoLoading = false;
     private volatile boolean isSeeking = false;
+    private volatile boolean isScrubbingTimeBar = false;
+    private final Handler seekResetHandler = new Handler(Looper.getMainLooper());
     private Player.Listener playerEventListener;
 
     // Comments manager
@@ -671,16 +673,16 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 } else if (ACTION_PIP_REWIND.equals(action)) {
                     long currentPos = player.getCurrentPosition();
                     long newPos = Math.max(0, currentPos - 10000);
-                    isSeeking = true;
+                    startSeekingState();
                     player.seekTo(newPos);
-                    updatePlayPauseAndLoadingState(true);
+                    scheduleEndSeekingState(450);
                 } else if (ACTION_PIP_FAST_FORWARD.equals(action)) {
                     long currentPos = player.getCurrentPosition();
                     long duration = player.getDuration();
                     long newPos = duration > 0 ? Math.min(duration, currentPos + 10000) : currentPos + 10000;
-                    isSeeking = true;
+                    startSeekingState();
                     player.seekTo(newPos);
-                    updatePlayPauseAndLoadingState(true);
+                    scheduleEndSeekingState(450);
                 }
             }
         };
@@ -2420,26 +2422,28 @@ public class VideoPlayerActivity extends AppCompatActivity {
             timeBar.addListener(new androidx.media3.ui.TimeBar.OnScrubListener() {
                 @Override
                 public void onScrubStart(@NonNull androidx.media3.ui.TimeBar timeBar, long position) {
-                    isSeeking = true;
-                    updatePlayPauseAndLoadingState(true);
+                    isScrubbingTimeBar = true;
+                    startSeekingState();
                 }
 
                 @Override
                 public void onScrubMove(@NonNull androidx.media3.ui.TimeBar timeBar, long position) {
-                    isSeeking = true;
+                    isScrubbingTimeBar = true;
+                    startSeekingState();
                 }
 
                 @Override
                 public void onScrubStop(@NonNull androidx.media3.ui.TimeBar timeBar, long position, boolean canceled) {
+                    isScrubbingTimeBar = false;
                     if (!canceled) {
-                        isSeeking = true;
+                        startSeekingState();
                         if (player != null) {
                             player.seekTo(position);
                         }
+                        scheduleEndSeekingState(450);
                     } else {
-                        isSeeking = false;
+                        scheduleEndSeekingState(0);
                     }
-                    updatePlayPauseAndLoadingState(true);
                 }
             });
         }
@@ -2739,13 +2743,21 @@ public class VideoPlayerActivity extends AppCompatActivity {
             public void onPlaybackStateChanged(int playbackState) {
                 Log.d("PlayerControls", "Playback state changed: " + playbackState);
                 if (playbackState == Player.STATE_READY) {
-                    if (player != null && (player.isPlaying() || !player.getPlayWhenReady())) {
+                    if (player != null && player.isPlaying()) {
                         isSeeking = false;
                         isVideoLoading = false;
+                        if (seekResetHandler != null) {
+                            seekResetHandler.removeCallbacksAndMessages(null);
+                        }
+                    } else if (player != null && !player.getPlayWhenReady()) {
+                        scheduleEndSeekingState(350);
                     }
                 } else if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
                     isSeeking = false;
                     isVideoLoading = false;
+                    if (seekResetHandler != null) {
+                        seekResetHandler.removeCallbacksAndMessages(null);
+                    }
                 }
                 updatePlayerControlsState();
                 if (episodesManager != null) {
@@ -2767,16 +2779,25 @@ public class VideoPlayerActivity extends AppCompatActivity {
             @Override
             public void onPositionDiscontinuity(@NonNull Player.PositionInfo oldPosition, @NonNull Player.PositionInfo newPosition, int reason) {
                 if (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) {
-                    isSeeking = true;
+                    startSeekingState();
+                    scheduleEndSeekingState(450);
+                } else {
+                    updatePlayPauseAndLoadingState(true);
                 }
-                updatePlayPauseAndLoadingState(true);
             }
 
             @Override
             public void onRenderedFirstFrame() {
                 Log.d("PlayerControls", "First frame rendered!");
-                isSeeking = false;
-                isVideoLoading = false;
+                if (player != null && player.isPlaying()) {
+                    isSeeking = false;
+                    isVideoLoading = false;
+                    if (seekResetHandler != null) {
+                        seekResetHandler.removeCallbacksAndMessages(null);
+                    }
+                } else {
+                    scheduleEndSeekingState(350);
+                }
                 updatePlayPauseAndLoadingState(true);
             }
 
@@ -2791,6 +2812,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 if (isPlaying) {
                     isSeeking = false;
                     isVideoLoading = false;
+                    if (seekResetHandler != null) {
+                        seekResetHandler.removeCallbacksAndMessages(null);
+                    }
                 }
                 updatePlayerControlsState();
                 updatePlayPauseAndLoadingState(true);
@@ -2804,6 +2828,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 Log.e("PlayerControls", "Player error: " + error.getMessage());
                 isSeeking = false;
                 isVideoLoading = false;
+                if (seekResetHandler != null) {
+                    seekResetHandler.removeCallbacksAndMessages(null);
+                }
                 updatePlayerControlsState();
                 updatePlayPauseAndLoadingState(true);
             }
@@ -2824,8 +2851,8 @@ public class VideoPlayerActivity extends AppCompatActivity {
             @Override
             public void onSeekGesture(long seekPosition) {
                 Log.d("VideoPlayer", "Seek gesture: " + seekPosition);
-                isSeeking = true;
-                updatePlayPauseAndLoadingState(true);
+                startSeekingState();
+                scheduleEndSeekingState(450);
             }
             
             @Override
@@ -2977,9 +3004,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
                     newPosition = Math.min(newPosition, duration);
                 }
                 
-                isSeeking = true;
+                startSeekingState();
                 player.seekTo(newPosition);
-                updatePlayPauseAndLoadingState(true);
+                scheduleEndSeekingState(450);
                 Log.d("VideoPlayer", "Double tap skip: " + (isForward ? "forward" : "backward") + 
                       " to " + (newPosition / 1000) + "s (skip=" + (skipDuration / 1000) + "s)");
             }
@@ -6661,6 +6688,39 @@ public class VideoPlayerActivity extends AppCompatActivity {
         }
     }
 
+    private void startSeekingState() {
+        isSeeking = true;
+        if (seekResetHandler != null) {
+            seekResetHandler.removeCallbacksAndMessages(null);
+        }
+        updatePlayPauseAndLoadingState(true);
+    }
+
+    private void scheduleEndSeekingState(long delayMs) {
+        if (seekResetHandler != null) {
+            seekResetHandler.removeCallbacksAndMessages(null);
+            if (delayMs <= 0) {
+                if (!isScrubbingTimeBar) {
+                    isSeeking = false;
+                    isVideoLoading = false;
+                    updatePlayPauseAndLoadingState(true);
+                }
+            } else {
+                seekResetHandler.postDelayed(() -> {
+                    if (!isScrubbingTimeBar) {
+                        isSeeking = false;
+                        isVideoLoading = false;
+                        updatePlayPauseAndLoadingState(true);
+                    }
+                }, delayMs);
+            }
+        } else {
+            isSeeking = false;
+            isVideoLoading = false;
+            updatePlayPauseAndLoadingState(true);
+        }
+    }
+
     private void setupPlayerControlButtons() {
         View controllerView = playerView.findViewById(R.id.exo_controller);
         if (controllerView == null) {
@@ -6689,9 +6749,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
                         newPosition = duration;
                     }
 
-                    isSeeking = true;
+                    startSeekingState();
                     player.seekTo(newPosition);
-                    updatePlayPauseAndLoadingState(true);
+                    scheduleEndSeekingState(450);
                     Log.d("PlayerControls", "Skipped forward to: " + (newPosition / 1000) + "s (+" + (skipDuration / 1000) + "s)");
                 } else {
                     Log.w("PlayerControls", "Skip forward not available");
@@ -6758,6 +6818,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                     playbackState == Player.STATE_BUFFERING
                     || isVideoLoading
                     || isSeeking
+                    || isScrubbingTimeBar
                     || (isPlayWhenReady && !isPlaying && playbackState != Player.STATE_IDLE)
             );
 
