@@ -109,7 +109,7 @@
                     android:textSize="14sp"/>
             </LinearLayout>
 
-            <com.google.android.material.slider.Slider
+            <com.example.animelib.views.ExpressiveSlider
                 android:id="@+id/sliderBrightness"
                 style="@style/Widget.AnimeLIB.Slider"
                 android:layout_width="match_parent"
@@ -148,7 +148,7 @@
                     android:textSize="14sp"/>
             </LinearLayout>
 
-            <com.google.android.material.slider.Slider
+            <com.example.animelib.views.ExpressiveSlider
                 android:id="@+id/sliderContrast"
                 style="@style/Widget.AnimeLIB.Slider"
                 android:layout_width="match_parent"
@@ -187,7 +187,7 @@
                     android:textSize="14sp"/>
             </LinearLayout>
 
-            <com.google.android.material.slider.Slider
+            <com.example.animelib.views.ExpressiveSlider
                 android:id="@+id/sliderSaturation"
                 style="@style/Widget.AnimeLIB.Slider"
                 android:layout_width="match_parent"
@@ -226,7 +226,7 @@
                     android:textSize="14sp"/>
             </LinearLayout>
 
-            <com.google.android.material.slider.Slider
+            <com.example.animelib.views.ExpressiveSlider
                 android:id="@+id/sliderGamma"
                 style="@style/Widget.AnimeLIB.Slider"
                 android:layout_width="match_parent"
@@ -265,7 +265,7 @@
                     android:textSize="14sp"/>
             </LinearLayout>
 
-            <com.google.android.material.slider.Slider
+            <com.example.animelib.views.ExpressiveSlider
                 android:id="@+id/sliderHue"
                 style="@style/Widget.AnimeLIB.Slider"
                 android:layout_width="match_parent"

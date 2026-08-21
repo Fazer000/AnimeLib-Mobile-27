@@ -7090,7 +7090,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
         if (timeBarView == null) return;
         try {
             float density = getResources().getDisplayMetrics().density;
-            float radiusPx = 4f * density;
+            float radiusPx = 2f * density;
             android.graphics.CornerPathEffect pathEffect = new android.graphics.CornerPathEffect(radiusPx);
 
             Class<?> clazz = timeBarView.getClass();

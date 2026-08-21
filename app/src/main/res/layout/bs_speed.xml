@@ -146,8 +146,8 @@
                 android:focusable="true"/>
         </LinearLayout>
 
-        <!-- Material 3 Slider (Frameless) -->
-        <com.google.android.material.slider.Slider
+        <!-- Material 3 Expressive Slider -->
+        <com.example.animelib.views.ExpressiveSlider
             android:id="@+id/speedSlider"
             style="@style/Widget.AnimeLIB.Slider"
             android:layout_width="match_parent"

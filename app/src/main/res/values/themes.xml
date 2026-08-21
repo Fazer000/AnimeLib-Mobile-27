@@ -145,12 +145,13 @@
 
     <!-- Custom Style for Material Slider -->
     <style name="Widget.AnimeLIB.Slider" parent="Widget.Material3.Slider">
-        <item name="trackHeight">6dp</item>
-        <item name="trackCornerRadius">3dp</item>
+        <item name="trackHeight">14dp</item>
+        <item name="trackCornerRadius">7dp</item>
         <item name="thumbColor">@color/purple_primary</item>
         <item name="trackColorActive">@color/purple_primary</item>
         <item name="trackColorInactive">@color/purple_alpha_25</item>
         <item name="haloColor">@color/purple_alpha_10</item>
+        <item name="haloRadius">12dp</item>
         <item name="labelBehavior">gone</item>
     </style>
 

@@ -18,6 +18,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -52,12 +53,20 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
         public String teamName;
         public int teamId;
         public String playerType;
+        public String coverUrl;
+        public String qualitiesString;
 
-        public VoiceoverOption(String title, String teamName, int teamId, String playerType) {
+        public VoiceoverOption(String title, String teamName, int teamId, String playerType, String coverUrl, String qualitiesString) {
             this.title = title;
             this.teamName = teamName;
             this.teamId = teamId;
             this.playerType = playerType;
+            this.coverUrl = coverUrl;
+            this.qualitiesString = qualitiesString;
+        }
+
+        public VoiceoverOption(String title, String teamName, int teamId, String playerType) {
+            this(title, teamName, teamId, playerType, null, null);
         }
 
         @NonNull
@@ -643,7 +652,20 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
                     String key = p.getTeam().getId() + "_" + pType;
                     if (!addedKeys.contains(key)) {
                         addedKeys.add(key);
-                        allVoiceovers.add(new VoiceoverOption(title, p.getTeam().getName(), p.getTeam().getId(), pType));
+                        String coverUrl = p.getCoverUrl();
+                        String qualitiesStr = "";
+                        if (p.getVideo() != null && p.getVideo().getQuality() != null && !p.getVideo().getQuality().isEmpty()) {
+                            List<String> qList = new ArrayList<>();
+                            for (EpisodeResponse.QualityData qd : p.getVideo().getQuality()) {
+                                if (qd != null && qd.getQuality() > 0) {
+                                    qList.add(qd.getQuality() + "p");
+                                }
+                            }
+                            if (!qList.isEmpty()) {
+                                qualitiesStr = String.join(", ", qList);
+                            }
+                        }
+                        allVoiceovers.add(new VoiceoverOption(title, p.getTeam().getName(), p.getTeam().getId(), pType, coverUrl, qualitiesStr));
                     }
                 }
             }
@@ -673,7 +695,8 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
         if (displayedVoiceovers.isEmpty()) {
             // Default fallback for chosen player
             String defaultTeamName = "animelib".equalsIgnoreCase(selectedPlayerType) ? "Основная озвучка (AnimeLib)" : "Основная озвучка (Kodik)";
-            displayedVoiceovers.add(new VoiceoverOption(defaultTeamName, defaultTeamName, 0, selectedPlayerType));
+            String defaultQualities = "kodik".equalsIgnoreCase(selectedPlayerType) ? "720p, 480p, 360p" : "1080p, 720p, 480p, 360p";
+            displayedVoiceovers.add(new VoiceoverOption(defaultTeamName, defaultTeamName, 0, selectedPlayerType, null, defaultQualities));
         }
 
         selectedVoiceover = displayedVoiceovers.get(0);
@@ -691,7 +714,7 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
             }
         }
 
-        rvEpisodes.setLayoutManager(new LinearLayoutManager(requireContext()));
+        rvEpisodes.setLayoutManager(new GridLayoutManager(requireContext(), 3));
         rvEpisodes.setNestedScrollingEnabled(false);
         episodeAdapter = new EpisodeAdapter();
         rvEpisodes.setAdapter(episodeAdapter);
@@ -885,7 +908,23 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             VoiceoverOption vo = displayedVoiceovers.get(position);
             holder.tvVoiceoverName.setText(vo.teamName);
-            holder.tvVoiceoverDetails.setText("Плеер: " + vo.playerType.toUpperCase());
+
+            String qText = vo.qualitiesString;
+            if (qText != null && !qText.isEmpty()) {
+                holder.tvVoiceoverDetails.setText("Качество: " + qText);
+            } else if ("kodik".equalsIgnoreCase(vo.playerType)) {
+                holder.tvVoiceoverDetails.setText("Качество: 720p, 480p, 360p");
+            } else {
+                holder.tvVoiceoverDetails.setText("Качество: 1080p, 720p, 480p, 360p");
+            }
+
+            if (holder.teamIcon != null) {
+                if (vo.coverUrl != null && !vo.coverUrl.isEmpty()) {
+                    com.example.animelib.util.ImageLoader.getInstance().loadInto(holder.teamIcon, vo.coverUrl, R.drawable.ic_avatar_placeholder);
+                } else {
+                    holder.teamIcon.setImageResource(R.drawable.ic_avatar_placeholder);
+                }
+            }
 
             boolean isSelected = (selectedVoiceover != null && selectedVoiceover.equals(vo));
             if (isSelected) {
@@ -916,6 +955,7 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             View itemContainer;
+            ImageView teamIcon;
             TextView tvVoiceoverName;
             TextView tvVoiceoverDetails;
             ImageView ivCheck;
@@ -923,6 +963,7 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 itemContainer = itemView.findViewById(R.id.itemContainer);
+                teamIcon = itemView.findViewById(R.id.teamIcon);
                 tvVoiceoverName = itemView.findViewById(R.id.tvVoiceoverName);
                 tvVoiceoverDetails = itemView.findViewById(R.id.tvVoiceoverDetails);
                 ivCheck = itemView.findViewById(R.id.ivCheck);
@@ -943,32 +984,23 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             EpisodeCheckItem item = checkItems.get(position);
             String title = item.episode.getNumber() + " Серия";
-            if (item.episode.getName() != null && !item.episode.getName().isEmpty()) {
-                title += " (" + item.episode.getName() + ")";
-            }
             holder.tvEpisodeName.setText(title);
 
             if (item.isAlreadyDownloaded) {
-                holder.tvStatus.setText("Уже скачано");
+                holder.tvStatus.setText("Скачано");
                 holder.tvStatus.setTextColor(0xFF4CAF50); // green
-                holder.cbEpisode.setEnabled(false);
-                holder.cbEpisode.setChecked(false);
                 holder.itemView.setBackgroundResource(R.drawable.episode_item_normal);
                 holder.itemView.setAlpha(0.6f);
             } else if (!item.isAvailable) {
-                holder.tvStatus.setText("Нет в этой озвучке");
+                holder.tvStatus.setText("Недоступно");
                 holder.tvStatus.setTextColor(0xFFF44336); // red
-                holder.cbEpisode.setEnabled(false);
-                holder.cbEpisode.setChecked(false);
                 holder.itemView.setBackgroundResource(R.drawable.episode_item_normal);
                 holder.itemView.setAlpha(0.5f);
             } else {
                 holder.itemView.setAlpha(1.0f);
-                holder.cbEpisode.setEnabled(true);
-                holder.cbEpisode.setChecked(item.isChecked);
 
                 if (item.isChecked) {
-                    holder.tvStatus.setText("Выбрано для скачивания");
+                    holder.tvStatus.setText("Выбрано");
                     holder.tvStatus.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.secondary_text_color));
                     holder.itemView.setBackgroundResource(R.drawable.episode_item_selected);
                 } else {
@@ -1002,14 +1034,12 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             View itemContainer;
-            CheckBox cbEpisode;
             TextView tvEpisodeName;
             TextView tvStatus;
 
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 itemContainer = itemView.findViewById(R.id.itemContainer);
-                cbEpisode = itemView.findViewById(R.id.cbEpisode);
                 tvEpisodeName = itemView.findViewById(R.id.tvEpisodeName);
                 tvStatus = itemView.findViewById(R.id.tvStatus);
             }
