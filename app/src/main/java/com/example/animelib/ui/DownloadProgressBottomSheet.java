@@ -5,30 +5,28 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.animelib.R;
 import com.example.animelib.models.DownloadTask;
 import com.example.animelib.services.DownloadService;
 import com.example.animelib.util.FlexibleBottomSheetDialogFragment;
-import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DownloadProgressBottomSheet extends FlexibleBottomSheetDialogFragment implements DownloadService.QueueProgressListener {
 
@@ -46,10 +44,35 @@ public class DownloadProgressBottomSheet extends FlexibleBottomSheetDialogFragme
     private MaterialButton btnStopDownload;
 
     private final List<DownloadService.TaskProgressItem> taskItems = new ArrayList<>();
+    private final List<DisplayItem> displayItems = new ArrayList<>();
     private TaskProgressAdapter adapter;
 
     public static DownloadProgressBottomSheet newInstance() {
         return new DownloadProgressBottomSheet();
+    }
+
+    private static class DisplayItem {
+        static final int TYPE_HEADER = 0;
+        static final int TYPE_TASK = 1;
+
+        final int type;
+        final String voiceover;
+        final String quality;
+        final DownloadService.TaskProgressItem taskItem;
+
+        DisplayItem(String voiceover, String quality) {
+            this.type = TYPE_HEADER;
+            this.voiceover = voiceover;
+            this.quality = quality;
+            this.taskItem = null;
+        }
+
+        DisplayItem(DownloadService.TaskProgressItem taskItem) {
+            this.type = TYPE_TASK;
+            this.voiceover = null;
+            this.quality = null;
+            this.taskItem = taskItem;
+        }
     }
 
     @Override
@@ -111,7 +134,18 @@ public class DownloadProgressBottomSheet extends FlexibleBottomSheetDialogFragme
             });
         }
 
-        rvProgressTasks.setLayoutManager(new LinearLayoutManager(requireContext()));
+        GridLayoutManager gridLayoutManager = new GridLayoutManager(requireContext(), 3);
+        gridLayoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+            @Override
+            public int getSpanSize(int position) {
+                if (adapter != null && adapter.getItemViewType(position) == DisplayItem.TYPE_HEADER) {
+                    return 3;
+                }
+                return 1;
+            }
+        });
+
+        rvProgressTasks.setLayoutManager(gridLayoutManager);
         rvProgressTasks.setNestedScrollingEnabled(false);
         adapter = new TaskProgressAdapter();
         rvProgressTasks.setAdapter(adapter);
@@ -169,6 +203,32 @@ public class DownloadProgressBottomSheet extends FlexibleBottomSheetDialogFragme
         taskItems.clear();
         taskItems.addAll(activeItems);
 
+        displayItems.clear();
+        Map<String, List<DownloadService.TaskProgressItem>> groupedMap = new LinkedHashMap<>();
+
+        for (DownloadService.TaskProgressItem item : activeItems) {
+            String vo = (item.task.getTeamName() != null && !item.task.getTeamName().isEmpty()) ? item.task.getTeamName() : "Озвучка";
+            String q = (item.task.getQuality() != null && !item.task.getQuality().isEmpty()) ? item.task.getQuality() : "";
+            if (!q.isEmpty() && !q.toLowerCase().endsWith("p")) {
+                q = q + "p";
+            }
+            String key = vo + "___" + q;
+            if (!groupedMap.containsKey(key)) {
+                groupedMap.put(key, new ArrayList<>());
+            }
+            groupedMap.get(key).add(item);
+        }
+
+        for (Map.Entry<String, List<DownloadService.TaskProgressItem>> entry : groupedMap.entrySet()) {
+            String[] parts = entry.getKey().split("___", -1);
+            String voiceover = parts[0];
+            String quality = parts.length > 1 ? parts[1] : "";
+            displayItems.add(new DisplayItem(voiceover, quality));
+            for (DownloadService.TaskProgressItem item : entry.getValue()) {
+                displayItems.add(new DisplayItem(item));
+            }
+        }
+
         if (adapter != null) {
             adapter.notifyDataSetChanged();
         }
@@ -217,109 +277,119 @@ public class DownloadProgressBottomSheet extends FlexibleBottomSheetDialogFragme
         }
     }
 
-    private class TaskProgressAdapter extends RecyclerView.Adapter<TaskProgressAdapter.ViewHolder> {
+    private class TaskProgressAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+        @Override
+        public int getItemViewType(int position) {
+            return displayItems.get(position).type;
+        }
 
         @NonNull
         @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_download_progress_task, parent, false);
-            return new ViewHolder(view);
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            if (viewType == DisplayItem.TYPE_HEADER) {
+                View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_download_progress_header, parent, false);
+                return new HeaderViewHolder(view);
+            } else {
+                View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_download_progress_task, parent, false);
+                return new TaskViewHolder(view);
+            }
         }
 
         @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            DownloadService.TaskProgressItem item = taskItems.get(position);
-            DownloadTask task = item.task;
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+            DisplayItem displayItem = displayItems.get(position);
 
-            holder.tvTaskTitle.setText("Серия " + task.getEpisodeNumber() + (task.getEpisodeName() != null && !task.getEpisodeName().isEmpty() ? " - " + task.getEpisodeName() : ""));
-            holder.tvTaskSubtitle.setText(task.getTeamName() + " • " + task.getQuality() + "p");
+            if (holder instanceof HeaderViewHolder) {
+                HeaderViewHolder headerHolder = (HeaderViewHolder) holder;
+                headerHolder.tvHeaderVoiceover.setText(displayItem.voiceover);
+                if (displayItem.quality != null && !displayItem.quality.isEmpty()) {
+                    headerHolder.tvHeaderQuality.setText(displayItem.quality);
+                    headerHolder.tvHeaderQuality.setVisibility(View.VISIBLE);
+                } else {
+                    headerHolder.tvHeaderQuality.setVisibility(View.GONE);
+                }
+            } else if (holder instanceof TaskViewHolder) {
+                TaskViewHolder taskHolder = (TaskViewHolder) holder;
+                DownloadService.TaskProgressItem item = displayItem.taskItem;
+                DownloadTask task = item.task;
 
-            int secondaryColor = ContextCompat.getColor(holder.itemView.getContext(), R.color.secondary_text_color);
-            int accentColor = ContextCompat.getColor(holder.itemView.getContext(), R.color.accent_text_color);
+                String rawEp = task.getEpisodeNumber();
+                String epTitle;
+                if (rawEp != null && rawEp.toLowerCase().contains("серия")) {
+                    epTitle = rawEp;
+                } else {
+                    epTitle = "Серия " + (rawEp != null ? rawEp : "1");
+                }
+                taskHolder.tvTaskTitle.setText(epTitle);
 
-            switch (item.status) {
-                case DownloadService.TaskProgressItem.STATUS_DOWNLOADING:
-                    holder.itemContainer.setBackgroundResource(R.drawable.episode_item_selected);
-                    holder.ivStatusIcon.setVisibility(View.VISIBLE);
-                    holder.ivStatusIcon.setImageResource(R.drawable.ic_download);
-                    holder.ivStatusIcon.setColorFilter(secondaryColor);
-                    holder.pbStatusLoading.setVisibility(View.GONE);
-                    holder.pbItemProgress.setVisibility(View.VISIBLE);
-                    holder.pbItemProgress.setProgress(item.percent);
-                    holder.tvPercent.setText(item.percent + "%");
-                    holder.tvPercent.setTextColor(secondaryColor);
-                    break;
+                int secondaryColor = ContextCompat.getColor(taskHolder.itemView.getContext(), R.color.secondary_text_color);
+                int accentColor = ContextCompat.getColor(taskHolder.itemView.getContext(), R.color.accent_text_color);
 
-                case DownloadService.TaskProgressItem.STATUS_COMPLETED:
-                    holder.itemContainer.setBackgroundResource(R.drawable.episode_item_normal);
-                    holder.ivStatusIcon.setVisibility(View.VISIBLE);
-                    holder.ivStatusIcon.setImageResource(R.drawable.ic_check);
-                    holder.ivStatusIcon.setColorFilter(0xFF10B981);
-                    holder.pbStatusLoading.setVisibility(View.GONE);
-                    holder.pbItemProgress.setVisibility(View.GONE);
-                    holder.tvPercent.setText("Готово");
-                    holder.tvPercent.setTextColor(0xFF10B981);
-                    break;
+                taskHolder.pbItemProgress.setMax(100);
 
-                case DownloadService.TaskProgressItem.STATUS_ERROR:
-                    holder.itemContainer.setBackgroundResource(R.drawable.episode_item_normal);
-                    holder.ivStatusIcon.setVisibility(View.VISIBLE);
-                    holder.ivStatusIcon.setImageResource(R.drawable.ic_close);
-                    holder.ivStatusIcon.setColorFilter(0xFFEF4444);
-                    holder.pbStatusLoading.setVisibility(View.GONE);
-                    holder.pbItemProgress.setVisibility(View.GONE);
-                    holder.tvPercent.setText("Ошибка");
-                    holder.tvPercent.setTextColor(0xFFEF4444);
-                    break;
+                switch (item.status) {
+                    case DownloadService.TaskProgressItem.STATUS_DOWNLOADING:
+                        taskHolder.itemContainer.setBackgroundResource(R.drawable.episode_item_selected);
+                        taskHolder.pbItemProgress.setProgress(item.percent);
+                        taskHolder.tvPercent.setText(item.percent + "%");
+                        taskHolder.tvPercent.setTextColor(secondaryColor);
+                        break;
 
-                case DownloadService.TaskProgressItem.STATUS_WAITING:
-                default:
-                    holder.itemContainer.setBackgroundResource(R.drawable.episode_item_normal);
-                    holder.ivStatusIcon.setVisibility(View.VISIBLE);
-                    holder.ivStatusIcon.setImageResource(R.drawable.ic_download);
-                    holder.ivStatusIcon.setColorFilter(accentColor);
-                    holder.pbStatusLoading.setVisibility(View.GONE);
-                    holder.pbItemProgress.setVisibility(View.GONE);
-                    holder.tvPercent.setText("В очереди");
-                    holder.tvPercent.setTextColor(accentColor);
-                    break;
+                    case DownloadService.TaskProgressItem.STATUS_COMPLETED:
+                        taskHolder.itemContainer.setBackgroundResource(R.drawable.episode_item_normal);
+                        taskHolder.pbItemProgress.setProgress(100);
+                        taskHolder.tvPercent.setText("100%");
+                        taskHolder.tvPercent.setTextColor(0xFF10B981);
+                        break;
+
+                    case DownloadService.TaskProgressItem.STATUS_ERROR:
+                        taskHolder.itemContainer.setBackgroundResource(R.drawable.episode_item_normal);
+                        taskHolder.pbItemProgress.setProgress(item.percent);
+                        taskHolder.tvPercent.setText("Ошибка");
+                        taskHolder.tvPercent.setTextColor(0xFFEF4444);
+                        break;
+
+                    case DownloadService.TaskProgressItem.STATUS_WAITING:
+                    default:
+                        taskHolder.itemContainer.setBackgroundResource(R.drawable.episode_item_normal);
+                        taskHolder.pbItemProgress.setProgress(0);
+                        taskHolder.tvPercent.setText("0%");
+                        taskHolder.tvPercent.setTextColor(accentColor);
+                        break;
+                }
             }
         }
 
         @Override
         public int getItemCount() {
-            return taskItems.size();
+            return displayItems.size();
         }
 
-        class ViewHolder extends RecyclerView.ViewHolder {
+        class HeaderViewHolder extends RecyclerView.ViewHolder {
+            TextView tvHeaderVoiceover;
+            TextView tvHeaderQuality;
+
+            HeaderViewHolder(@NonNull View itemView) {
+                super(itemView);
+                tvHeaderVoiceover = itemView.findViewById(R.id.tvHeaderVoiceover);
+                tvHeaderQuality = itemView.findViewById(R.id.tvHeaderQuality);
+            }
+        }
+
+        class TaskViewHolder extends RecyclerView.ViewHolder {
             View itemContainer;
-            ImageView ivStatusIcon;
-            ProgressBar pbStatusLoading;
             TextView tvTaskTitle;
-            TextView tvTaskSubtitle;
             ProgressBar pbItemProgress;
             TextView tvPercent;
 
-            ViewHolder(@NonNull View itemView) {
+            TaskViewHolder(@NonNull View itemView) {
                 super(itemView);
                 itemContainer = itemView.findViewById(R.id.itemContainer);
-                ivStatusIcon = itemView.findViewById(R.id.ivStatusIcon);
-                pbStatusLoading = itemView.findViewById(R.id.pbStatusLoading);
                 tvTaskTitle = itemView.findViewById(R.id.tvTaskTitle);
-                tvTaskSubtitle = itemView.findViewById(R.id.tvTaskSubtitle);
                 pbItemProgress = itemView.findViewById(R.id.pbItemProgress);
                 tvPercent = itemView.findViewById(R.id.tvPercent);
             }
         }
-    }
-
-    private int getAttrColor(int attrRes, int defaultColor) {
-        try {
-            android.util.TypedValue typedValue = new android.util.TypedValue();
-            if (requireContext().getTheme().resolveAttribute(attrRes, typedValue, true)) {
-                return typedValue.data;
-            }
-        } catch (Exception ignored) {}
-        return defaultColor;
     }
 }
