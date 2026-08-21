@@ -71,31 +71,17 @@ public class QualityAdapter extends RecyclerView.Adapter<QualityAdapter.QualityV
             holder.qualityText.setTextColor(typedValue.data);
         }
 
-        // Animated scale transition for active vs inactive quality item
-        float targetScale = isCurrent ? 1.02f : 1.0f;
-        holder.itemView.animate()
-                .scaleX(targetScale)
-                .scaleY(targetScale)
-                .setDuration(150)
-                .start();
+        // Smooth transition for active vs inactive state without scaling
+        holder.itemView.setScaleX(1.0f);
+        holder.itemView.setScaleY(1.0f);
+        com.example.animelib.util.ItemAnimationUtils.animateItemStateTransition(holder.itemView, isCurrent);
 
         holder.itemView.setOnClickListener(v -> {
-            v.animate()
-                    .scaleX(0.94f)
-                    .scaleY(0.94f)
-                    .setDuration(70)
-                    .withEndAction(() -> {
-                        v.animate()
-                                .scaleX(1.02f)
-                                .scaleY(1.02f)
-                                .setDuration(120)
-                                .start();
-                    })
-                    .start();
-
-            if (listener != null) {
-                listener.onQualitySelected(quality);
-            }
+            com.example.animelib.util.ItemAnimationUtils.animateItemClick(v, () -> {
+                if (listener != null) {
+                    listener.onQualitySelected(quality);
+                }
+            });
         });
     }
 

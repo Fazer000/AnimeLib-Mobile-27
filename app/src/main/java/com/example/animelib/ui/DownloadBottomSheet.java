@@ -896,12 +896,9 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
                 holder.ivCheck.setVisibility(View.GONE);
             }
 
-            float targetScale = isSelected ? 1.02f : 1.0f;
-            holder.itemContainer.animate()
-                    .scaleX(targetScale)
-                    .scaleY(targetScale)
-                    .setDuration(180)
-                    .start();
+            holder.itemContainer.setScaleX(1.0f);
+            holder.itemContainer.setScaleY(1.0f);
+            com.example.animelib.util.ItemAnimationUtils.animateItemStateTransition(holder.itemContainer, isSelected);
 
             holder.itemContainer.setOnClickListener(v -> {
                 com.example.animelib.util.ItemAnimationUtils.animateItemClick(v, () -> {
@@ -981,12 +978,11 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
                 }
             }
 
-            float epTargetScale = (item.isChecked && item.isAvailable && !item.isAlreadyDownloaded) ? 1.02f : 1.0f;
-            holder.itemView.animate()
-                    .scaleX(epTargetScale)
-                    .scaleY(epTargetScale)
-                    .setDuration(180)
-                    .start();
+            holder.itemView.setScaleX(1.0f);
+            holder.itemView.setScaleY(1.0f);
+            if (item.isAvailable && !item.isAlreadyDownloaded) {
+                com.example.animelib.util.ItemAnimationUtils.animateItemStateTransition(holder.itemView, item.isChecked);
+            }
 
             holder.itemView.setOnClickListener(v -> {
                 if (item.isAvailable && !item.isAlreadyDownloaded) {

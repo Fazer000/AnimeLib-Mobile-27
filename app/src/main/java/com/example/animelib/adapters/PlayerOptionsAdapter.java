@@ -151,15 +151,12 @@ public class PlayerOptionsAdapter extends RecyclerView.Adapter<PlayerOptionsAdap
             holder.firstRow.setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.primary_text_color));
         }
 
-        // Animated scale transition for active vs inactive state
-        float targetScale = isCurrentPlayer ? 1.02f : 1.0f;
-        holder.itemView.animate()
-                .scaleX(targetScale)
-                .scaleY(targetScale)
-                .setDuration(180)
-                .start();
+        // Smooth transition for active vs inactive state without scaling
+        holder.itemView.setScaleX(1.0f);
+        holder.itemView.setScaleY(1.0f);
+        com.example.animelib.util.ItemAnimationUtils.animateItemStateTransition(holder.itemView, isCurrentPlayer);
 
-        // Set click listener with spring animation
+        // Set click listener
         holder.itemView.setOnClickListener(v -> {
             com.example.animelib.util.ItemAnimationUtils.animateItemClick(v, () -> {
                 if (listener != null) {

@@ -53,6 +53,8 @@ public class EpisodesManager {
     private HorizontalEpisodesAdapter episodesAdapter;
     private RecyclerView portraitEpisodesRecyclerView;
     private HorizontalEpisodesAdapter portraitEpisodesAdapter;
+    private boolean hasInitialScrolledLandscape = false;
+    private boolean hasInitialScrolledPortrait = false;
 
     // Смещение в dp (понятное значение)
     private final float totalOffsetDp = 60f;
@@ -436,6 +438,8 @@ public class EpisodesManager {
      * Установка списка эпизодов вручную (например, для офлайн режима)
      */
     public void setEpisodes(List<EpisodesListResponse.EpisodeItem> newEpisodes) {
+        hasInitialScrolledLandscape = false;
+        hasInitialScrolledPortrait = false;
         episodes.clear();
         if (newEpisodes != null) {
             episodes.addAll(newEpisodes);
@@ -454,6 +458,8 @@ public class EpisodesManager {
      * Загрузка эпизодов
      */
     public void loadEpisodes(String animeId) {
+        hasInitialScrolledLandscape = false;
+        hasInitialScrolledPortrait = false;
         Log.d(TAG, "Loading episodes for anime ID: " + animeId);
 
         apiService.fetchEpisodesList(animeId, new ApiService.EpisodesCallback() {
@@ -583,7 +589,7 @@ public class EpisodesManager {
     }
     
     /**
-     * Прокрутка к текущему эпизоду в списке
+     * Прокрутка к текущему эпизоду в списке (только при первоначальном входе в плеер/загрузке)
      */
     private void scrollToCurrentEpisode() {
         if ((episodesRecyclerView == null && portraitEpisodesRecyclerView == null) || currentEpisode == null || episodes.isEmpty()) {
@@ -602,8 +608,10 @@ public class EpisodesManager {
         
         if (currentIndex >= 0) {
             final int targetIndex = currentIndex;
-            Log.d(TAG, "Scrolling to current episode at position: " + targetIndex + " (aligned to left)");
-            if (episodesRecyclerView != null) {
+            
+            if (episodesRecyclerView != null && !hasInitialScrolledLandscape) {
+                hasInitialScrolledLandscape = true;
+                Log.d(TAG, "Initial scroll to current episode (landscape) at position: " + targetIndex);
                 episodesRecyclerView.post(() -> {
                     if (episodesRecyclerView.getLayoutManager() instanceof LinearLayoutManager) {
                         ((LinearLayoutManager) episodesRecyclerView.getLayoutManager()).scrollToPositionWithOffset(targetIndex, 0);
@@ -612,7 +620,10 @@ public class EpisodesManager {
                     }
                 });
             }
-            if (portraitEpisodesRecyclerView != null) {
+
+            if (portraitEpisodesRecyclerView != null && !hasInitialScrolledPortrait) {
+                hasInitialScrolledPortrait = true;
+                Log.d(TAG, "Initial scroll to current episode (portrait) at position: " + targetIndex);
                 portraitEpisodesRecyclerView.post(() -> {
                     if (portraitEpisodesRecyclerView.getLayoutManager() instanceof LinearLayoutManager) {
                         ((LinearLayoutManager) portraitEpisodesRecyclerView.getLayoutManager()).scrollToPositionWithOffset(targetIndex, 0);

@@ -149,15 +149,12 @@ public class HorizontalEpisodesAdapter extends RecyclerView.Adapter<HorizontalEp
             }
         }
 
-        // Animated scale transition for active vs inactive state
-        float targetScale = isCurrentEpisode ? 1.05f : 1.0f;
-        holder.itemView.animate()
-                .scaleX(targetScale)
-                .scaleY(targetScale)
-                .setDuration(180)
-                .start();
+        // Smooth transition for active vs inactive state without scaling
+        holder.itemView.setScaleX(1.0f);
+        holder.itemView.setScaleY(1.0f);
+        com.example.animelib.util.ItemAnimationUtils.animateItemStateTransition(holder.itemView, isCurrentEpisode);
 
-        // Set click listener with spring animation
+        // Set click listener
         holder.itemView.setOnClickListener(v -> {
             com.example.animelib.util.ItemAnimationUtils.animateItemClick(v, () -> {
                 if (listener != null) {
