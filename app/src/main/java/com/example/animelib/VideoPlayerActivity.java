@@ -47,6 +47,9 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.graphics.Bitmap;
+import com.example.animelib.util.CustomTypefaceSpan;
+import com.example.animelib.util.FontResolver;
 import com.example.animelib.util.CustomToast;
 import com.example.animelib.util.SkeletonHelper;
 
@@ -6195,6 +6198,55 @@ public class VideoPlayerActivity extends AppCompatActivity {
         }
     }
 
+    private Bitmap renderAssVectorPath(Path rawPath, int fillColor, int strokeColor, float strokeWidth, float pScale) {
+        if (rawPath == null) return null;
+        try {
+            Path scaledPath = new Path();
+            Matrix scaleMatrix = new Matrix();
+            scaleMatrix.setScale(pScale, pScale);
+            rawPath.transform(scaleMatrix, scaledPath);
+
+            RectF bounds = new RectF();
+            scaledPath.computeBounds(bounds, true);
+
+            int padding = Math.max(4, Math.round(strokeWidth * 2));
+            int bmpWidth = Math.max(1, Math.round(bounds.width()) + padding * 2);
+            int bmpHeight = Math.max(1, Math.round(bounds.height()) + padding * 2);
+
+            if (bmpWidth > 2048) bmpWidth = 2048;
+            if (bmpHeight > 2048) bmpHeight = 2048;
+
+            Bitmap bitmap = Bitmap.createBitmap(bmpWidth, bmpHeight, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+
+            Matrix translate = new Matrix();
+            translate.postTranslate(-bounds.left + padding, -bounds.top + padding);
+            Path drawPath = new Path();
+            scaledPath.transform(translate, drawPath);
+
+            if (fillColor != Color.TRANSPARENT) {
+                Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                fillPaint.setStyle(Paint.Style.FILL);
+                fillPaint.setColor(fillColor);
+                canvas.drawPath(drawPath, fillPaint);
+            }
+
+            if (strokeColor != Color.TRANSPARENT && strokeWidth > 0) {
+                Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                strokePaint.setStyle(Paint.Style.STROKE);
+                strokePaint.setColor(strokeColor);
+                strokePaint.setStrokeWidth(strokeWidth);
+                strokePaint.setStrokeJoin(Paint.Join.ROUND);
+                strokePaint.setStrokeCap(Paint.Cap.ROUND);
+                canvas.drawPath(drawPath, strokePaint);
+            }
+
+            return bitmap;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private static void applyAnAlignment(Cue.Builder builder, int an) {
         switch (an) {
             case 7:
@@ -6229,17 +6281,17 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 break;
             case 1:
                 builder.setPosition(0.05f).setPositionAnchor(Cue.ANCHOR_TYPE_START)
-                       .setLine(0.92f, Cue.LINE_TYPE_FRACTION).setLineAnchor(Cue.ANCHOR_TYPE_END)
+                       .setLine(Cue.DIMEN_UNSET, Cue.TYPE_UNSET).setLineAnchor(Cue.ANCHOR_TYPE_END)
                        .setTextAlignment(android.text.Layout.Alignment.ALIGN_NORMAL);
                 break;
             case 2:
                 builder.setPosition(0.5f).setPositionAnchor(Cue.ANCHOR_TYPE_MIDDLE)
-                       .setLine(0.92f, Cue.LINE_TYPE_FRACTION).setLineAnchor(Cue.ANCHOR_TYPE_END)
+                       .setLine(Cue.DIMEN_UNSET, Cue.TYPE_UNSET).setLineAnchor(Cue.ANCHOR_TYPE_END)
                        .setTextAlignment(android.text.Layout.Alignment.ALIGN_CENTER);
                 break;
             case 3:
                 builder.setPosition(0.95f).setPositionAnchor(Cue.ANCHOR_TYPE_END)
-                       .setLine(0.92f, Cue.LINE_TYPE_FRACTION).setLineAnchor(Cue.ANCHOR_TYPE_END)
+                       .setLine(Cue.DIMEN_UNSET, Cue.TYPE_UNSET).setLineAnchor(Cue.ANCHOR_TYPE_END)
                        .setTextAlignment(android.text.Layout.Alignment.ALIGN_OPPOSITE);
                 break;
         }
@@ -6312,7 +6364,6 @@ public class VideoPlayerActivity extends AppCompatActivity {
         Cue.Builder builder = cue.buildUpon();
 
         if (isAssDrawingPath(raw)) {
-            // Extract ASS drawing attributes
             float posX = -1.0f;
             float posY = -1.0f;
             java.util.regex.Matcher posMatcher = java.util.regex.Pattern.compile("(?i)\\\\pos\\(\\s*(-?\\d+(?:\\.\\d+)?)\\s*,\\s*(-?\\d+(?:\\.\\d+)?)\\s*\\)").matcher(raw);
@@ -6360,33 +6411,37 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 drawingCommands = raw.replaceAll("\\{([^\\}]+)\\}", "").trim();
             }
 
-            float playResX = 1280.0f;
-            float playResY = 720.0f;
-            if (posX > 1280 || posY > 720 || raw.contains("1920") || raw.contains("1080")) {
-                playResX = 1920.0f;
-                playResY = 1080.0f;
-            }
+            float playResX = (posX > 1280 || posY > 720 || raw.contains("1920") || raw.contains("1080")) ? 1920.0f : 1280.0f;
+            float playResY = (posX > 1280 || posY > 720 || raw.contains("1920") || raw.contains("1080")) ? 1080.0f : 720.0f;
 
             Path path = parseAssPath(drawingCommands, pScale);
             if (path != null) {
-                SpannableStringBuilder ssb = new SpannableStringBuilder(" ");
-                AssPathSpan pathSpan = new AssPathSpan(path, fillColor, strokeColor, strokeWidth, posX, posY, playResX, playResY);
-                ssb.setSpan(pathSpan, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-                builder.setText(ssb)
-                       .setPosition(0.0f)
-                       .setPositionAnchor(Cue.ANCHOR_TYPE_START)
-                       .setLine(0.0f, Cue.LINE_TYPE_FRACTION)
-                       .setLineAnchor(Cue.ANCHOR_TYPE_START)
-                       .setSize(1.0f);
-                return builder.build();
+                Bitmap vectorBmp = renderAssVectorPath(path, fillColor, strokeColor, strokeWidth, pScale);
+                if (vectorBmp != null) {
+                    builder.setBitmap(vectorBmp);
+                    if (posX >= 0 && posY >= 0) {
+                        float xRatio = Math.max(0.0f, Math.min(1.0f, posX / playResX));
+                        float yRatio = Math.max(0.0f, Math.min(1.0f, posY / playResY));
+                        builder.setPosition(xRatio)
+                               .setPositionAnchor(Cue.ANCHOR_TYPE_START)
+                               .setLine(yRatio, Cue.LINE_TYPE_FRACTION)
+                               .setLineAnchor(Cue.ANCHOR_TYPE_START)
+                               .setSize((float) vectorBmp.getWidth() / playResX);
+                    } else {
+                        builder.setPosition(0.5f)
+                               .setPositionAnchor(Cue.ANCHOR_TYPE_MIDDLE)
+                               .setLine(0.5f, Cue.LINE_TYPE_FRACTION)
+                               .setLineAnchor(Cue.ANCHOR_TYPE_MIDDLE);
+                    }
+                    return builder.build();
+                }
             }
         }
 
         builder = cue.buildUpon();
         SpannableStringBuilder ssb = new SpannableStringBuilder(text);
 
-        // 2. Strip vector drawing blocks {\p1}...{\p0} from ssb if present
+        // Strip vector drawing blocks {\p1}...{\p0} from ssb if present
         String str = ssb.toString();
         java.util.regex.Matcher pBlockMatcher = java.util.regex.Pattern.compile("(?i)\\{\\\\p[1-9]\\}[^\\{]*(\\{\\\\p0\\})?").matcher(str);
         while (pBlockMatcher.find()) {
@@ -6395,7 +6450,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
             pBlockMatcher = java.util.regex.Pattern.compile("(?i)\\{\\\\p[1-9]\\}[^\\{]*(\\{\\\\p0\\})?").matcher(str);
         }
 
-        // Strip standalone vector path sequences (e.g. "m 0 0 l 200 0...")
+        // Strip standalone vector path sequences
         str = ssb.toString();
         java.util.regex.Matcher drawingPathMatcher = java.util.regex.Pattern.compile("(?i)(?:^|\\s)(?:m|n|l|b|s|p|c)(?:\\s+-?\\d+(?:\\.\\d+)?\\s*)+").matcher(str);
         while (drawingPathMatcher.find()) {
@@ -6404,12 +6459,11 @@ public class VideoPlayerActivity extends AppCompatActivity {
             drawingPathMatcher = java.util.regex.Pattern.compile("(?i)(?:^|\\s)(?:m|n|l|b|s|p|c)(?:\\s+-?\\d+(?:\\.\\d+)?\\s*)+").matcher(str);
         }
 
-        // If after stripping vector drawings, no readable text is left, return null
         if (ssb.toString().replaceAll("\\{([^\\}]+)\\}", "").trim().isEmpty()) {
             return null;
         }
 
-        // 3. Convert ASS raw newline tags \N and \n to real newlines, \h to space
+        // Convert ASS raw newline tags \N and \n to real newlines, \h to space
         str = ssb.toString();
         int idx;
         while ((idx = str.indexOf("\\N")) != -1) {
@@ -6425,7 +6479,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
             str = ssb.toString();
         }
 
-        // 4. Parse inline ASS tags {...} if any remain in text
+        // Parse inline ASS tags {...}
         str = ssb.toString();
         if (str.contains("{")) {
             java.util.regex.Pattern tagPattern = java.util.regex.Pattern.compile("\\{([^\\}]+)\\}");
@@ -6447,46 +6501,53 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 int tagEnd = matcher.end();
                 String tagBlock = matcher.group(1);
 
-                // Alignment \an1..\an9
+                int anVal = 2; // Default ASS alignment is bottom-center \an2
                 java.util.regex.Matcher anMatcher = java.util.regex.Pattern.compile("(?i)\\\\an([1-9])").matcher(tagBlock);
                 if (anMatcher.find()) {
-                    int an = Integer.parseInt(anMatcher.group(1));
-                    applyAnAlignment(builder, an);
+                    anVal = Integer.parseInt(anMatcher.group(1));
+                    applyAnAlignment(builder, anVal);
                 }
 
-                // Position \pos(x,y)
                 java.util.regex.Matcher posMatcher = java.util.regex.Pattern.compile("(?i)\\\\pos\\(\\s*(-?\\d+(?:\\.\\d+)?)\\s*,\\s*(-?\\d+(?:\\.\\d+)?)\\s*\\)").matcher(tagBlock);
                 if (posMatcher.find()) {
                     try {
                         float px = Float.parseFloat(posMatcher.group(1));
                         float py = Float.parseFloat(posMatcher.group(2));
-                        float normX = px > 1.0f ? (px / 1280.0f) : px;
-                        float normY = py > 1.0f ? (py / 720.0f) : py;
-                        builder.setPosition(Math.max(0.0f, Math.min(1.0f, normX)))
-                               .setLine(Math.max(0.0f, Math.min(1.0f, normY)), Cue.LINE_TYPE_FRACTION);
+                        float scriptResX = (px > 1280 || py > 720 || raw.contains("1920") || raw.contains("1080")) ? 1920.0f : 1280.0f;
+                        float scriptResY = (px > 1280 || py > 720 || raw.contains("1920") || raw.contains("1080")) ? 1080.0f : 720.0f;
+
+                        float normX = Math.max(0.0f, Math.min(1.0f, px / scriptResX));
+                        float normY = Math.max(0.0f, Math.min(1.0f, py / scriptResY));
+
+                        int xAnchor = Cue.ANCHOR_TYPE_MIDDLE;
+                        int yAnchor = Cue.ANCHOR_TYPE_END;
+                        if (anVal == 1 || anVal == 4 || anVal == 7) xAnchor = Cue.ANCHOR_TYPE_START;
+                        else if (anVal == 3 || anVal == 6 || anVal == 9) xAnchor = Cue.ANCHOR_TYPE_END;
+
+                        if (anVal >= 7) yAnchor = Cue.ANCHOR_TYPE_START;
+                        else if (anVal >= 4) yAnchor = Cue.ANCHOR_TYPE_MIDDLE;
+
+                        builder.setPosition(normX).setPositionAnchor(xAnchor)
+                               .setLine(normY, Cue.LINE_TYPE_FRACTION).setLineAnchor(yAnchor);
                     } catch (Exception ignored) {}
                 }
 
-                // Primary Color \1c, \c
                 java.util.regex.Matcher colorMatcher = java.util.regex.Pattern.compile("(?i)\\\\(?:1c|c)[&H#]*([0-9a-fA-F]{1,8})&?").matcher(tagBlock);
                 if (colorMatcher.find()) {
                     currentColor = parseAssColor(colorMatcher.group(1));
                 }
 
-                // Outline Color \3c
                 java.util.regex.Matcher outlineColorMatcher = java.util.regex.Pattern.compile("(?i)\\\\3c[&H#]*([0-9a-fA-F]{1,8})&?").matcher(tagBlock);
                 if (outlineColorMatcher.find()) {
                     currentOutlineColor = parseAssColor(outlineColorMatcher.group(1));
                 }
 
-                // Font \fn
                 java.util.regex.Matcher fontMatcher = java.util.regex.Pattern.compile("(?i)\\\\fn([^\\\\}]+)").matcher(tagBlock);
                 if (fontMatcher.find()) {
                     currentFont = fontMatcher.group(1).trim();
                     if (currentFont.isEmpty()) currentFont = null;
                 }
 
-                // Size \fs
                 java.util.regex.Matcher sizeMatcher = java.util.regex.Pattern.compile("(?i)\\\\fs(\\d+)").matcher(tagBlock);
                 if (sizeMatcher.find()) {
                     try {
@@ -6494,26 +6555,22 @@ public class VideoPlayerActivity extends AppCompatActivity {
                     } catch (Exception ignored) {}
                 }
 
-                // Bold \b
                 java.util.regex.Matcher boldMatcher = java.util.regex.Pattern.compile("(?i)\\\\b([01]|\\d{3})").matcher(tagBlock);
                 if (boldMatcher.find()) {
                     String val = boldMatcher.group(1);
                     isBold = "1".equals(val) || (val.length() == 3 && !val.equals("000"));
                 }
 
-                // Italic \i
                 java.util.regex.Matcher italicMatcher = java.util.regex.Pattern.compile("(?i)\\\\i([01])").matcher(tagBlock);
                 if (italicMatcher.find()) {
                     isItalic = "1".equals(italicMatcher.group(1));
                 }
 
-                // Underline tag
                 java.util.regex.Matcher underlineMatcher = java.util.regex.Pattern.compile("(?i)\\\\u([01])").matcher(tagBlock);
                 if (underlineMatcher.find()) {
                     isUnderline = "1".equals(underlineMatcher.group(1));
                 }
 
-                // Reset \r
                 if (tagBlock.matches("(?i).*\\\\r.*")) {
                     currentColor = null;
                     currentOutlineColor = null;
@@ -6535,7 +6592,8 @@ public class VideoPlayerActivity extends AppCompatActivity {
                         ssb.setSpan(new ForegroundColorSpan(currentColor), tagStart, textSegmentEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                     if (currentFont != null) {
-                        ssb.setSpan(new TypefaceSpan(currentFont), tagStart, textSegmentEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        Typeface tf = FontResolver.resolveTypeface(VideoPlayerActivity.this, currentFont, isBold != null && isBold, isItalic != null && isItalic);
+                        ssb.setSpan(new CustomTypefaceSpan(tf), tagStart, textSegmentEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }
                     if (currentSize != null && currentSize > 0) {
                         ssb.setSpan(new AbsoluteSizeSpan(currentSize, true), tagStart, textSegmentEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -6565,6 +6623,29 @@ public class VideoPlayerActivity extends AppCompatActivity {
         return builder.setText(ssb).build();
     }
 
+    private List<Cue> resolveCueCollisions(List<Cue> cues) {
+        if (cues == null || cues.size() <= 1) return cues;
+
+        List<Cue> resolved = new ArrayList<>();
+        int unpositionedBottomCount = 0;
+
+        for (Cue cue : cues) {
+            if (cue == null) continue;
+            boolean isBottomUnpositioned = (cue.line == Cue.DIMEN_UNSET || cue.lineType == Cue.TYPE_UNSET);
+            if (isBottomUnpositioned && cue.bitmap == null) {
+                Cue.Builder b = cue.buildUpon();
+                float linePos = 0.92f - (unpositionedBottomCount * 0.08f);
+                b.setLine(Math.max(0.1f, linePos), Cue.LINE_TYPE_FRACTION)
+                 .setLineAnchor(Cue.ANCHOR_TYPE_END);
+                unpositionedBottomCount++;
+                resolved.add(b.build());
+            } else {
+                resolved.add(cue);
+            }
+        }
+        return resolved;
+    }
+
     private void setupSubtitlePlayerListener(ExoPlayer p) {
         if (p == null) return;
         p.addListener(new Player.Listener() {
@@ -6580,14 +6661,15 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 for (Cue cue : cueGroup.cues) {
                     if (cue.text != null) {
                         Cue processed = processAssCue(cue);
-                        if (processed != null && processed.text != null && processed.text.length() > 0) {
+                        if (processed != null && ((processed.text != null && processed.text.length() > 0) || processed.bitmap != null)) {
                             processedCues.add(processed);
                         }
-                    } else {
+                    } else if (cue.bitmap != null) {
                         processedCues.add(cue);
                     }
                 }
-                playerView.getSubtitleView().setCues(processedCues);
+                List<Cue> stackedCues = resolveCueCollisions(processedCues);
+                playerView.getSubtitleView().setCues(stackedCues);
             }
 
             @Override
