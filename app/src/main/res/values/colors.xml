@@ -62,7 +62,7 @@
 
     <color name="lt_line_color">#E5E7EB</color>
 
-    <color name="lt_header_color">#F8F9FA</color>
+    <color name="lt_header_color">#ede7f6</color>
     <color name="lt_webview_status_bar_color">#ede7f6</color>
     <color name="toolbar_header_bg">#ede7f6</color>
 

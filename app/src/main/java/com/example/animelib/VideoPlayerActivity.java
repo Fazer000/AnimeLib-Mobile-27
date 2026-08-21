@@ -218,6 +218,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private volatile boolean isVideoLoading = false;
     private volatile boolean isSeeking = false;
     private volatile boolean isScrubbingTimeBar = false;
+    private int currentControlState = -1; // -1 = uninitialized, 0 = play, 1 = pause, 2 = loading
     private final Handler seekResetHandler = new Handler(Looper.getMainLooper());
     private Player.Listener playerEventListener;
 
@@ -6712,21 +6713,18 @@ public class VideoPlayerActivity extends AppCompatActivity {
             if (delayMs <= 0) {
                 if (!isScrubbingTimeBar) {
                     isSeeking = false;
-                    isVideoLoading = false;
                     updatePlayPauseAndLoadingState(true);
                 }
             } else {
                 seekResetHandler.postDelayed(() -> {
                     if (!isScrubbingTimeBar) {
                         isSeeking = false;
-                        isVideoLoading = false;
                         updatePlayPauseAndLoadingState(true);
                     }
                 }, delayMs);
             }
         } else {
             isSeeking = false;
-            isVideoLoading = false;
             updatePlayPauseAndLoadingState(true);
         }
     }
@@ -6818,14 +6816,16 @@ public class VideoPlayerActivity extends AppCompatActivity {
             boolean isPlaying = (player != null) && player.isPlaying();
             boolean isPlayWhenReady = (player != null) && player.getPlayWhenReady();
             int playbackState = (player != null) ? player.getPlaybackState() : Player.STATE_IDLE;
+            boolean isLoading = (player != null) && player.isLoading();
 
             // Буферизация / загрузка / перемотка:
-            // 1) ExoPlayer находится в STATE_BUFFERING
+            // 1) ExoPlayer находится в STATE_BUFFERING или player.isLoading()
             // 2) Активна загрузка видео (isVideoLoading)
-            // 3) Выполняется перемотка пользователем (isSeeking)
+            // 3) Выполняется перемотка пользователем (isSeeking, isScrubbingTimeBar)
             // 4) Активно воспроизведение (isPlayWhenReady), но воспроизведение еще не началось (не играет) и не в конце
             boolean isBuffering = !isEnded && (
                     playbackState == Player.STATE_BUFFERING
+                    || isLoading
                     || isVideoLoading
                     || isSeeking
                     || isScrubbingTimeBar
@@ -6838,17 +6838,29 @@ public class VideoPlayerActivity extends AppCompatActivity {
             // Оверлейный индикатор на самом плеере (отображается, когда контролы скрыты)
             if (playerBufferingIndicator != null) {
                 if (showBuffering && !isControllerVisible) {
-                    playerBufferingIndicator.animate().setListener(null);
-                    playerBufferingIndicator.animate().cancel();
-                    playerBufferingIndicator.setVisibility(View.VISIBLE);
-                    playerBufferingIndicator.setAlpha(1.0f);
-                    playerBufferingIndicator.setScaleX(1.0f);
-                    playerBufferingIndicator.setScaleY(1.0f);
+                    if (playerBufferingIndicator.getVisibility() != View.VISIBLE) {
+                        playerBufferingIndicator.animate().cancel();
+                        playerBufferingIndicator.setVisibility(View.VISIBLE);
+                        playerBufferingIndicator.setAlpha(0f);
+                        playerBufferingIndicator.setScaleX(0.7f);
+                        playerBufferingIndicator.setScaleY(0.7f);
+                        playerBufferingIndicator.animate()
+                                .alpha(1.0f)
+                                .scaleX(1.0f)
+                                .scaleY(1.0f)
+                                .setDuration(200)
+                                .start();
+                    }
                     playerBufferingIndicator.bringToFront();
-                } else {
-                    playerBufferingIndicator.animate().setListener(null);
+                } else if (playerBufferingIndicator.getVisibility() == View.VISIBLE) {
                     playerBufferingIndicator.animate().cancel();
-                    playerBufferingIndicator.setVisibility(View.GONE);
+                    playerBufferingIndicator.animate()
+                            .alpha(0f)
+                            .scaleX(0.7f)
+                            .scaleY(0.7f)
+                            .setDuration(150)
+                            .withEndAction(() -> playerBufferingIndicator.setVisibility(View.GONE))
+                            .start();
                 }
             }
 
@@ -6860,59 +6872,78 @@ public class VideoPlayerActivity extends AppCompatActivity {
             View pause = controllerView.findViewById(R.id.btnPlayerPause);
             View spinner = controllerView.findViewById(R.id.playLoadingIndicator);
 
+            if (play == null || pause == null || spinner == null) return;
+
+            int targetState;
             if (showBuffering) {
-                // Во время буферизации или перемотки показываем спиннер в контроллере и прячем Play/Pause
-                if (play != null) {
-                    play.animate().cancel();
-                    play.animate().setListener(null);
-                    play.setVisibility(View.GONE);
-                }
-                if (pause != null) {
-                    pause.animate().cancel();
-                    pause.animate().setListener(null);
-                    pause.setVisibility(View.GONE);
-                }
-                if (spinner != null) {
-                    spinner.setVisibility(View.VISIBLE);
-                }
+                targetState = 2; // LOADING
             } else if (isPlaying) {
-                // Воспроизведение - показываем кнопку паузы
-                if (play != null) {
-                    play.animate().cancel();
-                    play.animate().setListener(null);
-                    play.setVisibility(View.GONE);
-                }
-                if (spinner != null) {
-                    spinner.setVisibility(View.GONE);
-                }
-                if (pause != null) {
-                    pause.animate().cancel();
-                    pause.animate().setListener(null);
-                    pause.setVisibility(View.VISIBLE);
-                    pause.setAlpha(1.0f);
-                    pause.setScaleX(1.0f);
-                    pause.setScaleY(1.0f);
-                }
+                targetState = 1; // PAUSE
             } else {
-                // Пауза - показываем кнопку воспроизведения
-                if (pause != null) {
-                    pause.animate().cancel();
-                    pause.animate().setListener(null);
-                    pause.setVisibility(View.GONE);
-                }
-                if (spinner != null) {
-                    spinner.setVisibility(View.GONE);
-                }
-                if (play != null) {
-                    play.animate().cancel();
-                    play.animate().setListener(null);
-                    play.setVisibility(View.VISIBLE);
-                    play.setAlpha(1.0f);
-                    play.setScaleX(1.0f);
-                    play.setScaleY(1.0f);
+                targetState = 0; // PLAY
+            }
+
+            boolean shouldAnimate = animate && (currentControlState != -1) && (currentControlState != targetState);
+            currentControlState = targetState;
+
+            View showView = (targetState == 2) ? spinner : ((targetState == 1) ? pause : play);
+            View hideView1 = (targetState == 2) ? play : ((targetState == 1) ? play : pause);
+            View hideView2 = (targetState == 2) ? pause : ((targetState == 1) ? spinner : spinner);
+
+            animateControlViewSwitch(showView, hideView1, hideView2, shouldAnimate);
+        });
+    }
+
+    private void animateControlViewSwitch(View showView, View hideView1, View hideView2, boolean animate) {
+        if (showView == null) return;
+
+        for (View v : new View[]{hideView1, hideView2}) {
+            if (v != null) {
+                v.animate().cancel();
+                if (animate && v.getVisibility() == View.VISIBLE) {
+                    v.animate()
+                            .alpha(0f)
+                            .scaleX(0.6f)
+                            .scaleY(0.6f)
+                            .setDuration(150)
+                            .withEndAction(() -> {
+                                v.setVisibility(View.GONE);
+                                v.setAlpha(1.0f);
+                                v.setScaleX(1.0f);
+                                v.setScaleY(1.0f);
+                            })
+                            .start();
+                } else {
+                    v.setVisibility(View.GONE);
+                    v.setAlpha(1.0f);
+                    v.setScaleX(1.0f);
+                    v.setScaleY(1.0f);
                 }
             }
-        });
+        }
+
+        showView.animate().cancel();
+        showView.setVisibility(View.VISIBLE);
+
+        if (showView instanceof com.google.android.material.progressindicator.CircularProgressIndicator) {
+            ((com.google.android.material.progressindicator.CircularProgressIndicator) showView).show();
+        }
+
+        if (animate) {
+            showView.setAlpha(0f);
+            showView.setScaleX(0.6f);
+            showView.setScaleY(0.6f);
+            showView.animate()
+                    .alpha(1.0f)
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(200)
+                    .start();
+        } else {
+            showView.setAlpha(1.0f);
+            showView.setScaleX(1.0f);
+            showView.setScaleY(1.0f);
+        }
     }
     
     /**
