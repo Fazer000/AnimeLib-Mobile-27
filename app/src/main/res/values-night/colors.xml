@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Semantic Theme Colors (Dark Override) -->
+    <color name="resize_card_selected_bg">@color/purple_secondary_dark</color>
+    <color name="resize_card_selected_stroke">@color/purple_primary</color>
+    <color name="resize_card_unselected_bg">#1F1F24</color>
+    <color name="resize_card_unselected_stroke">#33333C</color>
+    <color name="resize_preview_inner_bg">#2A323D</color>
+
     <color name="switch_track_unchecked">#2D2D36</color>
     <color name="switch_thumb_unchecked">#7E8FA6</color>
     <color name="toolbar_header_bg">@color/dt_header_color</color>

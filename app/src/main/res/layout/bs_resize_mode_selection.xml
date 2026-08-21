@@ -74,7 +74,7 @@
                 android:orientation="horizontal"
                 android:baselineAligned="false">
 
-                <!-- Card 1: Fit ("нет") -->
+                <!-- Card 1: Fit ("С полями") -->
                 <LinearLayout
                     android:id="@+id/resizeFitOption"
                     android:layout_width="0dp"
@@ -85,7 +85,7 @@
                     android:gravity="center_horizontal"
                     android:clickable="true"
                     android:focusable="true"
-                    android:background="?attr/selectableItemBackground">
+                    android:background="@drawable/card_ripple_effect">
 
                     <FrameLayout
                         android:id="@+id/resizeFitCardBox"
@@ -97,6 +97,7 @@
                         <RelativeLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
+                            android:clipToOutline="true"
                             android:background="@drawable/bg_resize_preview_inner">
 
                             <!-- Pillarbox vertical side bars -->
@@ -113,8 +114,8 @@
                                 android:background="#161B22" />
 
                             <ImageView
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
+                                android:layout_width="38dp"
+                                android:layout_height="38dp"
                                 android:layout_centerInParent="true"
                                 android:src="@drawable/ic_resize_mode_fit"
                                 app:tint="#FFFFFF" />
@@ -131,7 +132,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="нет"
+                            android:text="С полями"
                             android:textColor="@color/primary_text_color"
                             android:textSize="14sp"
                             android:fontFamily="@font/open_sans_bold" />
@@ -142,7 +143,7 @@
                             android:layout_height="16dp"
                             android:layout_marginStart="4dp"
                             android:src="@drawable/ic_check"
-                            app:tint="#82B1FF"
+                            app:tint="@color/purple_primary"
                             android:visibility="visible" />
                     </LinearLayout>
 
@@ -159,7 +160,7 @@
                     android:gravity="center_horizontal"
                     android:clickable="true"
                     android:focusable="true"
-                    android:background="?attr/selectableItemBackground">
+                    android:background="@drawable/card_ripple_effect">
 
                     <FrameLayout
                         android:id="@+id/resizeFillCardBox"
@@ -171,11 +172,12 @@
                         <RelativeLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
+                            android:clipToOutline="true"
                             android:background="@drawable/bg_resize_preview_inner">
 
                             <ImageView
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
+                                android:layout_width="38dp"
+                                android:layout_height="38dp"
                                 android:layout_centerInParent="true"
                                 android:src="@drawable/ic_resize_mode_stretch"
                                 app:tint="#FFFFFF" />
@@ -203,7 +205,7 @@
                             android:layout_height="16dp"
                             android:layout_marginStart="4dp"
                             android:src="@drawable/ic_check"
-                            app:tint="#82B1FF"
+                            app:tint="@color/purple_primary"
                             android:visibility="gone" />
                     </LinearLayout>
 
@@ -230,7 +232,7 @@
                     android:gravity="center_horizontal"
                     android:clickable="true"
                     android:focusable="true"
-                    android:background="?attr/selectableItemBackground">
+                    android:background="@drawable/card_ripple_effect">
 
                     <FrameLayout
                         android:id="@+id/resizeZoomCardBox"
@@ -242,6 +244,7 @@
                         <RelativeLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
+                            android:clipToOutline="true"
                             android:background="@drawable/bg_resize_preview_inner">
 
                             <!-- Top Crop Dashed Line -->
@@ -261,8 +264,8 @@
                                 android:background="@drawable/bg_crop_dashed_line" />
 
                             <ImageView
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
+                                android:layout_width="38dp"
+                                android:layout_height="38dp"
                                 android:layout_centerInParent="true"
                                 android:src="@drawable/ic_resize_mode_crop"
                                 app:tint="#FFFFFF" />
@@ -290,7 +293,7 @@
                             android:layout_height="16dp"
                             android:layout_marginStart="4dp"
                             android:src="@drawable/ic_check"
-                            app:tint="#82B1FF"
+                            app:tint="@color/purple_primary"
                             android:visibility="gone" />
                     </LinearLayout>
 

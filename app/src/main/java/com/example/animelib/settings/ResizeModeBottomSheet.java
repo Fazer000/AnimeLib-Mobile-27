@@ -123,7 +123,7 @@ public class ResizeModeBottomSheet extends FlexibleBottomSheetDialog {
                 return "Растянуть";
             case 0: // RESIZE_MODE_FIT
             default:
-                return "нет";
+                return "С полями";
         }
     }
 }
