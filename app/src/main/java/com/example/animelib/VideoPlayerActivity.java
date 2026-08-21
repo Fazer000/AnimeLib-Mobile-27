@@ -6797,22 +6797,20 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private void updatePlayPauseAndLoadingState(boolean animate) {
         safeRunOnUiThread(() -> {
             boolean isEnded = (player != null) && (player.getPlaybackState() == Player.STATE_ENDED);
-            boolean isPlaying = (player != null) && player.isPlaying();
             boolean isPlayWhenReady = (player != null) && player.getPlayWhenReady();
             int playbackState = (player != null) ? player.getPlaybackState() : Player.STATE_IDLE;
+            boolean isPlaying = (player != null) && (player.isPlaying() || (isPlayWhenReady && playbackState == Player.STATE_READY));
             boolean isLoading = (player != null) && player.isLoading();
 
             // Буферизация / загрузка / перемотка:
             // 1) ExoPlayer находится в STATE_BUFFERING или player.isLoading()
             // 2) Активна загрузка видео (isVideoLoading)
             // 3) Выполняется перемотка пользователем (isSeeking, isScrubbingTimeBar)
-            // 4) Активно воспроизведение (isPlayWhenReady), но воспроизведение еще не началось (не играет) и не в конце
             boolean isBuffering = !isEnded && (
                     playbackState == Player.STATE_BUFFERING
                     || isVideoLoading
                     || isSeeking
                     || isScrubbingTimeBar
-                    || (isPlayWhenReady && !isPlaying && playbackState != Player.STATE_IDLE)
             );
 
             // Показываем индикатор буферизации поверх плеера/контролов, если не активен полноэкранный loadingOverlay
@@ -6866,7 +6864,12 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 targetState = 0; // PLAY
             }
 
-            boolean shouldAnimate = animate && (currentControlState != -1) && (currentControlState != targetState);
+            if (currentControlState == targetState && currentControlState != -1) {
+                // Состояние уже активно — не прерываем текущую выполняющуюся анимацию
+                return;
+            }
+
+            boolean shouldAnimate = animate && (currentControlState != -1);
             currentControlState = targetState;
 
             View showView = (targetState == 2) ? spinner : ((targetState == 1) ? pause : play);
