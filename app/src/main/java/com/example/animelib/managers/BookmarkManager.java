@@ -37,6 +37,17 @@ public class BookmarkManager {
                            BookmarkAddCallback callback, boolean showSuccessToast) {
         
         Log.d(TAG, "Adding bookmark for episode: " + currentEpisode.getNumber());
+
+        if (apiService != null && !apiService.isAuthorized()) {
+            Log.w(TAG, "User is not authorized, cannot add bookmark");
+            if (showSuccessToast) {
+                showToast("Без авторизации поставить закладку нельзя");
+            }
+            if (callback != null) {
+                callback.onBookmarkError("Not authorized");
+            }
+            return;
+        }
         
         if (currentPlayer == null) {
             showToast("Нет данных о текущем плеере");

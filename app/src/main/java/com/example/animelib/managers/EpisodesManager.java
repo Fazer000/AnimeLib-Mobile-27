@@ -586,7 +586,7 @@ public class EpisodesManager {
      * Прокрутка к текущему эпизоду в списке
      */
     private void scrollToCurrentEpisode() {
-        if (episodesRecyclerView == null || currentEpisode == null || episodes.isEmpty()) {
+        if ((episodesRecyclerView == null && portraitEpisodesRecyclerView == null) || currentEpisode == null || episodes.isEmpty()) {
             return;
         }
         
@@ -601,12 +601,25 @@ public class EpisodesManager {
         }
         
         if (currentIndex >= 0) {
-            Log.d(TAG, "Scrolling to current episode at position: " + currentIndex);
+            final int targetIndex = currentIndex;
+            Log.d(TAG, "Scrolling to current episode at position: " + targetIndex + " (aligned to left)");
             if (episodesRecyclerView != null) {
-                episodesRecyclerView.scrollToPosition(currentIndex);
+                episodesRecyclerView.post(() -> {
+                    if (episodesRecyclerView.getLayoutManager() instanceof LinearLayoutManager) {
+                        ((LinearLayoutManager) episodesRecyclerView.getLayoutManager()).scrollToPositionWithOffset(targetIndex, 0);
+                    } else {
+                        episodesRecyclerView.scrollToPosition(targetIndex);
+                    }
+                });
             }
             if (portraitEpisodesRecyclerView != null) {
-                portraitEpisodesRecyclerView.scrollToPosition(currentIndex);
+                portraitEpisodesRecyclerView.post(() -> {
+                    if (portraitEpisodesRecyclerView.getLayoutManager() instanceof LinearLayoutManager) {
+                        ((LinearLayoutManager) portraitEpisodesRecyclerView.getLayoutManager()).scrollToPositionWithOffset(targetIndex, 0);
+                    } else {
+                        portraitEpisodesRecyclerView.scrollToPosition(targetIndex);
+                    }
+                });
             }
         }
     }

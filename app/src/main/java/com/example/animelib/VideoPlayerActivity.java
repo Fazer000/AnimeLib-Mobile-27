@@ -1851,13 +1851,15 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
         if (portraitVoiceoverPlayerButton != null) {
             portraitVoiceoverPlayerButton.setOnClickListener(v -> {
-                if (isOfflineMode) {
-                    CustomToast.showInfo(this, "Выбор озвучки недоступен в офлайн режиме");
-                    return;
-                }
-                if (playersManager != null) {
-                    playersManager.toggleMenu();
-                }
+                com.example.animelib.util.ItemAnimationUtils.animateItemClick(v, () -> {
+                    if (isOfflineMode) {
+                        CustomToast.showInfo(this, "Выбор озвучки недоступен в офлайн режиме");
+                        return;
+                    }
+                    if (playersManager != null) {
+                        playersManager.toggleMenu();
+                    }
+                });
             });
         }
 
@@ -1939,6 +1941,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
             if (isOfflineMode) {
                 SkeletonHelper.hideSkeleton(tvPortraitVoiceover, getOfflineVoiceoverName());
                 SkeletonHelper.hideSkeleton(tvPortraitPlayer, getOfflinePlayerTypeName());
+                com.example.animelib.util.ItemAnimationUtils.animateTextChange(tvPortraitVoiceover);
                 return;
             }
             if (playersManager == null) return;
@@ -1957,6 +1960,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                     playerName = "Плеер";
                 }
                 SkeletonHelper.hideSkeleton(tvPortraitPlayer, playerName);
+                com.example.animelib.util.ItemAnimationUtils.animateTextChange(tvPortraitVoiceover);
             } else {
                 SkeletonHelper.hideSkeleton(tvPortraitVoiceover, "Выбрать озвучку");
                 SkeletonHelper.hideSkeleton(tvPortraitPlayer, "");
@@ -2596,17 +2600,21 @@ public class VideoPlayerActivity extends AppCompatActivity {
         // Navigation buttons
         if (prevEpisodeButton != null) {
             prevEpisodeButton.setOnClickListener(v -> {
-                if (prevEpisodeButton.isEnabled()) {
-                    episodesManager.navigateToPreviousEpisode();
-                }
+                com.example.animelib.util.ItemAnimationUtils.animateItemClick(v, () -> {
+                    if (prevEpisodeButton.isEnabled()) {
+                        episodesManager.navigateToPreviousEpisode();
+                    }
+                });
             });
         }
         
         if (nextEpisodeButton != null) {
             nextEpisodeButton.setOnClickListener(v -> {
-                if (nextEpisodeButton.isEnabled()) {
-                    episodesManager.navigateToNextEpisode();
-                }
+                com.example.animelib.util.ItemAnimationUtils.animateItemClick(v, () -> {
+                    if (nextEpisodeButton.isEnabled()) {
+                        episodesManager.navigateToNextEpisode();
+                    }
+                });
             });
         }
         
@@ -5410,6 +5418,11 @@ public class VideoPlayerActivity extends AppCompatActivity {
             return;
         }
 
+        if (apiService == null || !apiService.isAuthorized()) {
+            Log.d("VideoPlayer", "Cannot auto-save bookmark - user not authorized");
+            return;
+        }
+
         EpisodeResponse.PlayerData currentPlayer = playersManager != null ? playersManager.getCurrentPlayerData() : null;
         if (currentPlayer == null) {
             Log.d("VideoPlayer", "Cannot auto-save bookmark - player not ready");
@@ -6944,6 +6957,11 @@ public class VideoPlayerActivity extends AppCompatActivity {
             } else {
                 CustomToast.showWarning(this, "Не удалось сохранить закладку");
             }
+            return;
+        }
+
+        if (apiService == null || !apiService.isAuthorized()) {
+            CustomToast.showWarning(this, "Без авторизации поставить закладку нельзя");
             return;
         }
 

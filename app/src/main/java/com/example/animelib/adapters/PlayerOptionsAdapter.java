@@ -141,13 +141,6 @@ public class PlayerOptionsAdapter extends RecyclerView.Adapter<PlayerOptionsAdap
                                 player.getTeam().getName() != null && currentPlayer.getTeam().getName() != null &&
                                 player.getTeam().getName().equals(currentPlayer.getTeam().getName())));
 
-        // Set click listener
-        holder.itemView.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onPlayerSelected(player);
-            }
-        });
-
         // Set selected state and text color
         holder.itemView.setSelected(isCurrentPlayer);
 
@@ -157,6 +150,23 @@ public class PlayerOptionsAdapter extends RecyclerView.Adapter<PlayerOptionsAdap
         } else {
             holder.firstRow.setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.primary_text_color));
         }
+
+        // Animated scale transition for active vs inactive state
+        float targetScale = isCurrentPlayer ? 1.02f : 1.0f;
+        holder.itemView.animate()
+                .scaleX(targetScale)
+                .scaleY(targetScale)
+                .setDuration(180)
+                .start();
+
+        // Set click listener with spring animation
+        holder.itemView.setOnClickListener(v -> {
+            com.example.animelib.util.ItemAnimationUtils.animateItemClick(v, () -> {
+                if (listener != null) {
+                    listener.onPlayerSelected(player);
+                }
+            });
+        });
     }
 
     @Override

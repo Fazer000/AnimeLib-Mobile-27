@@ -231,6 +231,20 @@ public class ApiService {
     }
 
     /**
+     * Проверяет, авторизован ли пользователь (есть ли токен авторизации в БД)
+     */
+    public boolean isAuthorized() {
+        if (databaseManager == null) return false;
+        try {
+            TokenEntity token = databaseManager.getToken();
+            return token != null && token.getAccessToken() != null && !token.getAccessToken().trim().isEmpty();
+        } catch (Exception e) {
+            Log.e("ApiService", "Failed to check authorization status", e);
+            return false;
+        }
+    }
+
+    /**
      * Извлекает userId из JWT токена (claims: sub, user_id, id, nameid, uid)
      */
     public static String extractUserIdFromToken(String token) {

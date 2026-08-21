@@ -896,10 +896,19 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
                 holder.ivCheck.setVisibility(View.GONE);
             }
 
+            float targetScale = isSelected ? 1.02f : 1.0f;
+            holder.itemContainer.animate()
+                    .scaleX(targetScale)
+                    .scaleY(targetScale)
+                    .setDuration(180)
+                    .start();
+
             holder.itemContainer.setOnClickListener(v -> {
-                selectedVoiceover = vo;
-                notifyDataSetChanged();
-                updateAvailableQualities();
+                com.example.animelib.util.ItemAnimationUtils.animateItemClick(v, () -> {
+                    selectedVoiceover = vo;
+                    notifyDataSetChanged();
+                    updateAvailableQualities();
+                });
             });
         }
 
@@ -972,11 +981,20 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
                 }
             }
 
+            float epTargetScale = (item.isChecked && item.isAvailable && !item.isAlreadyDownloaded) ? 1.02f : 1.0f;
+            holder.itemView.animate()
+                    .scaleX(epTargetScale)
+                    .scaleY(epTargetScale)
+                    .setDuration(180)
+                    .start();
+
             holder.itemView.setOnClickListener(v -> {
                 if (item.isAvailable && !item.isAlreadyDownloaded) {
-                    item.isChecked = !item.isChecked;
-                    notifyItemChanged(holder.getBindingAdapterPosition());
-                    updateDownloadButtonText();
+                    com.example.animelib.util.ItemAnimationUtils.animateItemClick(v, () -> {
+                        item.isChecked = !item.isChecked;
+                        notifyItemChanged(holder.getBindingAdapterPosition());
+                        updateDownloadButtonText();
+                    });
                 }
             });
         }
