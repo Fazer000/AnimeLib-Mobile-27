@@ -606,15 +606,11 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private void loadAndApplyTheme() {
         executor.execute(() -> {
             try {
-                // Получаем тему из базы данных
-                int themeMode = apiService.loadThemeSetting();
-                Log.d("VideoPlayerTheme", "Loaded theme from database: " + themeMode);
-                
-                // Также проверяем SharedPreferences
                 int sharedPrefTheme = ThemeUtils.getSavedThemePreference(this);
-                Log.d("VideoPlayerTheme", "Loaded theme from SharedPreferences: " + sharedPrefTheme);
+                int themeMode = apiService.loadThemeSetting();
+                Log.d("VideoPlayerTheme", "Loaded theme - SharedPref: " + sharedPrefTheme + ", DB: " + themeMode);
                 
-                int finalTheme = (themeMode >= 0 && themeMode <= 2) ? themeMode : sharedPrefTheme;
+                int finalTheme = (sharedPrefTheme >= 0 && sharedPrefTheme <= 2) ? sharedPrefTheme : themeMode;
                 
                 // Применяем тему в главном потоке
                 safeRunOnUiThread(() -> {
@@ -4408,20 +4404,21 @@ public class VideoPlayerActivity extends AppCompatActivity {
             CustomToast.showInfo(this, "Воспроизводится скачанный файл");
             return;
         }
-        if (currentAnimeId == null) {
-            CustomToast.showWarning(this, "Информация об аниме ещё не загружена");
-            return;
-        }
-
-        requestNotificationPermission();
 
         List<EpisodesListResponse.EpisodeItem> epList = episodesManager != null ? episodesManager.getEpisodes() : new ArrayList<>();
         List<EpisodeResponse.PlayerData> players = playersManager != null ? playersManager.getAllPlayers() : new ArrayList<>();
 
-        if (players == null || players.isEmpty()) {
-            CustomToast.showInfo(this, "Озвучки ещё не загружены, подождите...");
+        boolean isTitleLoading = (animeTitleView != null && Boolean.TRUE.equals(animeTitleView.getTag(R.id.tag_skeleton_active)));
+        String titleTxt = animeTitleView != null ? animeTitleView.getText().toString() : null;
+        boolean hasIntentTitle = getIntent() != null && getIntent().getStringExtra("EXTRA_ANIME_TITLE") != null && !getIntent().getStringExtra("EXTRA_ANIME_TITLE").isEmpty();
+        boolean isTitleValid = (titleTxt != null && !titleTxt.isEmpty() && !titleTxt.equalsIgnoreCase("Загрузка...") && !titleTxt.equalsIgnoreCase("Аниме") && !titleTxt.contains("Маг Целитель")) || hasIntentTitle;
+
+        if (currentAnimeId == null || players == null || players.isEmpty() || epList == null || epList.isEmpty() || isTitleLoading || !isTitleValid) {
+            CustomToast.showInfo(this, "Данные еще не загружены, подождите...");
             return;
         }
+
+        requestNotificationPermission();
 
         String title = null;
         if (animeTitleView != null && !Boolean.TRUE.equals(animeTitleView.getTag(R.id.tag_skeleton_active))) {

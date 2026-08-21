@@ -34,8 +34,11 @@ public class ThemeUtils {
      * @param themeMode Режим темы
      */
     public static void applyThemeToActivity(Activity activity, int themeMode) {
-        // Сохраняем тему для будущих активностей
+        // Сохраняем тему синхронно для будущих активностей
         saveThemePreference(activity, themeMode);
+        
+        // Обновляем глобальный системный режим по умолчанию для всего приложения
+        applyTheme(themeMode);
         
         // Принудительно обновляем текущую активность БЕЗ пересоздания
         if (activity instanceof androidx.appcompat.app.AppCompatActivity) {
@@ -66,7 +69,7 @@ public class ThemeUtils {
 
     public static void saveThemePreference(Context context, int themeMode) {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        preferences.edit().putInt(THEME_MODE, themeMode).apply();
+        preferences.edit().putInt(THEME_MODE, themeMode).commit();
     }
 
     public static int getSavedThemePreference(Context context) {

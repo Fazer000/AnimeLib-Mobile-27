@@ -228,22 +228,18 @@ public class MainActivity extends AppCompatActivity {
     private void loadAndApplyTheme() {
         executor.execute(() -> {
             try {
-                // Получаем тему из базы данных
-                int themeMode = databaseManager.loadThemeSetting();
-                Log.d("Theme", "Loaded theme from database: " + themeMode);
-                
-                // Также проверяем SharedPreferences
+                // Приоритет отдаем SharedPreferences (синхронный источник актуальной темы)
                 int sharedPrefTheme = ThemeUtils.getSavedThemePreference(this);
-                Log.d("Theme", "Loaded theme from SharedPreferences: " + sharedPrefTheme);
+                int dbThemeMode = databaseManager.loadThemeSetting();
                 
-                // Используем сохраненную тему (0 = Light, 1 = Dark, 2 = System)
-                int finalTheme = (themeMode >= 0 && themeMode <= 2) ? themeMode : sharedPrefTheme;
+                int finalTheme = (sharedPrefTheme >= 0 && sharedPrefTheme <= 2) ? sharedPrefTheme : dbThemeMode;
+                Log.d("Theme", "Loaded theme - SharedPref: " + sharedPrefTheme + ", DB: " + dbThemeMode + " -> final: " + finalTheme);
                 
                 // Применяем тему в главном потоке
                 runOnUiThread(() -> {
                     ThemeUtils.applyThemeToActivity(MainActivity.this, finalTheme);
                     updateSystemBarColors();
-                    Log.d("Theme", "Theme applied on startup: " + finalTheme);
+                    Log.d("Theme", "Theme applied: " + finalTheme);
                 });
                 
             } catch (Exception e) {
@@ -259,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        updateSystemBarColors();
+        loadAndApplyTheme();
     }
 
     private void updateSystemBarColors() {
@@ -269,7 +265,7 @@ public class MainActivity extends AppCompatActivity {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             int targetStatusBarColor = isDark ? 
                 androidx.core.content.ContextCompat.getColor(this, R.color.dt_header_color) :
-                android.graphics.Color.parseColor("#ede7f6");
+                androidx.core.content.ContextCompat.getColor(this, R.color.lt_header_color);
             
             getWindow().setStatusBarColor(targetStatusBarColor);
             
@@ -283,7 +279,7 @@ public class MainActivity extends AppCompatActivity {
         if (swipeRefreshLayout != null) {
             int targetBgColor = isDark ? 
                 androidx.core.content.ContextCompat.getColor(this, R.color.dt_header_color) :
-                android.graphics.Color.parseColor("#ede7f6");
+                androidx.core.content.ContextCompat.getColor(this, R.color.lt_header_color);
             swipeRefreshLayout.setBackgroundColor(targetBgColor);
         }
     }

@@ -28,6 +28,10 @@ public class ResizeModeBottomSheet extends FlexibleBottomSheetDialog {
     private OnBackPressedListener onBackPressedListener;
     private int currentResizeMode;
 
+    private View resizeFitCardBox;
+    private View resizeZoomCardBox;
+    private View resizeFillCardBox;
+
     private ImageView resizeFitCheck;
     private ImageView resizeZoomCheck;
     private ImageView resizeFillCheck;
@@ -55,6 +59,10 @@ public class ResizeModeBottomSheet extends FlexibleBottomSheetDialog {
         LinearLayout resizeZoomOption = view.findViewById(R.id.resizeZoomOption);
         LinearLayout resizeFillOption = view.findViewById(R.id.resizeFillOption);
 
+        resizeFitCardBox = view.findViewById(R.id.resizeFitCardBox);
+        resizeZoomCardBox = view.findViewById(R.id.resizeZoomCardBox);
+        resizeFillCardBox = view.findViewById(R.id.resizeFillCardBox);
+
         resizeFitCheck = view.findViewById(R.id.resizeFitCheck);
         resizeZoomCheck = view.findViewById(R.id.resizeZoomCheck);
         resizeFillCheck = view.findViewById(R.id.resizeFillCheck);
@@ -71,8 +79,8 @@ public class ResizeModeBottomSheet extends FlexibleBottomSheetDialog {
         });
 
         // AspectRatioFrameLayout values:
-        // RESIZE_MODE_FIT = 0 ("С полосами по бокам")
-        // RESIZE_MODE_ZOOM = 4 ("Ообрезать")
+        // RESIZE_MODE_FIT = 0 ("нет")
+        // RESIZE_MODE_ZOOM = 4 ("Обрезать")
         // RESIZE_MODE_FILL = 3 ("Растянуть")
         resizeFitOption.setOnClickListener(v -> selectMode(0));
         resizeZoomOption.setOnClickListener(v -> selectMode(4));
@@ -92,9 +100,19 @@ public class ResizeModeBottomSheet extends FlexibleBottomSheetDialog {
     }
 
     private void updateSelection() {
+        if (resizeFitCardBox != null) {
+            resizeFitCardBox.setBackgroundResource(currentResizeMode == 0 ? R.drawable.card_resize_selected : R.drawable.card_resize_unselected);
+        }
+        if (resizeFillCardBox != null) {
+            resizeFillCardBox.setBackgroundResource(currentResizeMode == 3 ? R.drawable.card_resize_selected : R.drawable.card_resize_unselected);
+        }
+        if (resizeZoomCardBox != null) {
+            resizeZoomCardBox.setBackgroundResource(currentResizeMode == 4 ? R.drawable.card_resize_selected : R.drawable.card_resize_unselected);
+        }
+
         if (resizeFitCheck != null) resizeFitCheck.setVisibility(currentResizeMode == 0 ? View.VISIBLE : View.GONE);
-        if (resizeZoomCheck != null) resizeZoomCheck.setVisibility(currentResizeMode == 4 ? View.VISIBLE : View.GONE);
         if (resizeFillCheck != null) resizeFillCheck.setVisibility(currentResizeMode == 3 ? View.VISIBLE : View.GONE);
+        if (resizeZoomCheck != null) resizeZoomCheck.setVisibility(currentResizeMode == 4 ? View.VISIBLE : View.GONE);
     }
 
     public static String getResizeModeText(int mode) {
@@ -105,7 +123,7 @@ public class ResizeModeBottomSheet extends FlexibleBottomSheetDialog {
                 return "Растянуть";
             case 0: // RESIZE_MODE_FIT
             default:
-                return "С полосами по бокам";
+                return "нет";
         }
     }
 }

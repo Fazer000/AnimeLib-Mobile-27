@@ -59,6 +59,8 @@
         <item name="windowSplashScreenAnimatedIcon">@drawable/animelib_logo</item>
         <item name="windowSplashScreenIconBackgroundColor">@android:color/transparent</item> <!-- Цвет круга behind иконки -->
         <item name="postSplashScreenTheme">@style/Theme.AnimeLIB</item>
+        <item name="android:statusBarColor">@color/dt_header_color</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
     <style name="SplashScreenTheme.WebView" parent="SplashScreenTheme">

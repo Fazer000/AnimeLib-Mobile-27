@@ -49,15 +49,21 @@ public class UrlInputActivity extends AppCompatActivity {
 
     private void loadAndApplyTheme() {
         try {
-            int themeMode = databaseManager.loadThemeSetting();
             int sharedPrefTheme = ThemeUtils.getSavedThemePreference(this);
-            int finalTheme = (themeMode >= 0 && themeMode <= 2) ? themeMode : sharedPrefTheme;
+            int themeMode = databaseManager.loadThemeSetting();
+            int finalTheme = (sharedPrefTheme >= 0 && sharedPrefTheme <= 2) ? sharedPrefTheme : themeMode;
             ThemeUtils.applyThemeToActivity(this, finalTheme);
-            Log.d("UrlInputActivity", "Theme applied on startup: " + finalTheme);
+            Log.d("UrlInputActivity", "Theme applied: " + finalTheme);
         } catch (Exception e) {
             Log.e("UrlInputActivity", "Failed to load and apply theme", e);
             ThemeUtils.applyThemeToActivity(this, ThemeUtils.getSavedThemePreference(this));
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadAndApplyTheme();
     }
 
     private void initializeViews() {

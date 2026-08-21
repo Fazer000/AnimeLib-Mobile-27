@@ -417,6 +417,20 @@ public class DownloadsActivity extends AppCompatActivity implements DownloadServ
     @Override
     protected void onResume() {
         super.onResume();
+        try {
+            int currentTheme = ThemeUtils.getSavedThemePreference(this);
+            ThemeUtils.applyThemeToActivity(this, currentTheme);
+            if (getWindow() != null) {
+                boolean isDark = currentTheme == ThemeUtils.THEME_DARK ||
+                        (currentTheme == ThemeUtils.THEME_SYSTEM &&
+                                (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES);
+                androidx.core.view.WindowInsetsControllerCompat insetsController =
+                        androidx.core.view.WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+                if (insetsController != null) {
+                    insetsController.setAppearanceLightStatusBars(!isDark);
+                }
+            }
+        } catch (Exception ignored) {}
         DownloadService.addQueueProgressListener(this);
         updateQueueSection();
     }
