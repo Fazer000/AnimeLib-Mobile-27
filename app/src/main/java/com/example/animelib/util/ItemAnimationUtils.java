@@ -9,7 +9,7 @@ public class ItemAnimationUtils {
 
     /**
      * Анимирует нажатие на элемент списка (эпизоды, озвучки, качества, кнопки переключения):
-     * плавный отклик прозрачности без изменения размера (кейлинга).
+     * четкий отклик прозрачности и легкая задержка вызова действия для завершения эффекта.
      */
     public static void animateItemClick(View view, Runnable action) {
         if (view == null) {
@@ -20,35 +20,39 @@ public class ItemAnimationUtils {
         view.animate().cancel();
         view.setScaleX(1.0f);
         view.setScaleY(1.0f);
-        view.setAlpha(0.65f);
+        view.setAlpha(0.3f);
 
         view.animate()
                 .alpha(1.0f)
-                .setDuration(160)
+                .setDuration(200)
                 .setInterpolator(new DecelerateInterpolator())
                 .start();
 
         if (action != null) {
-            action.run();
+            view.postDelayed(action, 70);
         }
     }
 
     /**
-     * Плавный переход элемента между активным и неактивным состоянием (без скейлинга).
+     * Плавный переход элемента при выборе активного состояния (плавный вспышка-проявление без скейлинга).
      */
     public static void animateItemStateTransition(View view, boolean isActive) {
         if (view == null) return;
 
+        view.animate().cancel();
         view.setScaleX(1.0f);
         view.setScaleY(1.0f);
 
-        float targetAlpha = isActive ? 1.0f : 0.82f;
-        view.animate().cancel();
-        view.animate()
-                .alpha(targetAlpha)
-                .setDuration(200)
-                .setInterpolator(new DecelerateInterpolator())
-                .start();
+        if (isActive) {
+            view.setAlpha(0.35f);
+            view.animate()
+                    .alpha(1.0f)
+                    .setDuration(250)
+                    .setInterpolator(new DecelerateInterpolator())
+                    .start();
+        } else {
+            view.setAlpha(1.0f);
+        }
     }
 
     /**
@@ -61,10 +65,10 @@ public class ItemAnimationUtils {
         view.setScaleX(1.0f);
         view.setScaleY(1.0f);
         
-        view.setAlpha(0.7f);
+        view.setAlpha(0.35f);
         view.animate()
                 .alpha(1.0f)
-                .setDuration(200)
+                .setDuration(250)
                 .setInterpolator(new DecelerateInterpolator())
                 .start();
     }
@@ -78,13 +82,14 @@ public class ItemAnimationUtils {
         view.animate().cancel();
         view.setScaleX(1.0f);
         view.setScaleY(1.0f);
-        view.setAlpha(0.3f);
+        view.setAlpha(0.2f);
 
         view.animate()
                 .alpha(1.0f)
-                .setDuration(200)
+                .setDuration(250)
                 .setInterpolator(new DecelerateInterpolator())
                 .start();
     }
 }
+
 
