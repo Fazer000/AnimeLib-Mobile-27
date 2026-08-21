@@ -672,14 +672,14 @@ public class VideoPlayerActivity extends AppCompatActivity {
                     long newPos = Math.max(0, currentPos - 10000);
                     startSeekingState();
                     player.seekTo(newPos);
-                    scheduleEndSeekingState(450);
+                    scheduleEndSeekingState(600);
                 } else if (ACTION_PIP_FAST_FORWARD.equals(action)) {
                     long currentPos = player.getCurrentPosition();
                     long duration = player.getDuration();
                     long newPos = duration > 0 ? Math.min(duration, currentPos + 10000) : currentPos + 10000;
                     startSeekingState();
                     player.seekTo(newPos);
-                    scheduleEndSeekingState(450);
+                    scheduleEndSeekingState(600);
                 }
             }
         };
@@ -2441,7 +2441,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                         if (player != null) {
                             player.seekTo(position);
                         }
-                        scheduleEndSeekingState(450);
+                        scheduleEndSeekingState(600);
                     } else {
                         scheduleEndSeekingState(0);
                     }
@@ -2748,15 +2748,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
             public void onPlaybackStateChanged(int playbackState) {
                 Log.d("PlayerControls", "Playback state changed: " + playbackState);
                 if (playbackState == Player.STATE_READY) {
-                    if (player != null && player.isPlaying()) {
-                        isSeeking = false;
-                        isVideoLoading = false;
-                        if (seekResetHandler != null) {
-                            seekResetHandler.removeCallbacksAndMessages(null);
-                        }
-                    } else if (player != null && !player.getPlayWhenReady()) {
-                        scheduleEndSeekingState(350);
-                    }
+                    isVideoLoading = false;
                 } else if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
                     isSeeking = false;
                     isVideoLoading = false;
@@ -2785,7 +2777,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
             public void onPositionDiscontinuity(@NonNull Player.PositionInfo oldPosition, @NonNull Player.PositionInfo newPosition, int reason) {
                 if (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) {
                     startSeekingState();
-                    scheduleEndSeekingState(450);
+                    scheduleEndSeekingState(600);
                 } else {
                     updatePlayPauseAndLoadingState(true);
                 }
@@ -2794,15 +2786,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
             @Override
             public void onRenderedFirstFrame() {
                 Log.d("PlayerControls", "First frame rendered!");
-                if (player != null && player.isPlaying()) {
-                    isSeeking = false;
-                    isVideoLoading = false;
-                    if (seekResetHandler != null) {
-                        seekResetHandler.removeCallbacksAndMessages(null);
-                    }
-                } else {
-                    scheduleEndSeekingState(350);
-                }
+                isVideoLoading = false;
                 updatePlayPauseAndLoadingState(true);
             }
 
@@ -2815,11 +2799,13 @@ public class VideoPlayerActivity extends AppCompatActivity {
             public void onIsPlayingChanged(boolean isPlaying) {
                 Log.d("PlayerControls", "Is playing changed: " + isPlaying);
                 if (isPlaying) {
-                    isSeeking = false;
-                    isVideoLoading = false;
-                    if (seekResetHandler != null) {
-                        seekResetHandler.removeCallbacksAndMessages(null);
+                    if (!isScrubbingTimeBar) {
+                        isSeeking = false;
+                        if (seekResetHandler != null) {
+                            seekResetHandler.removeCallbacksAndMessages(null);
+                        }
                     }
+                    isVideoLoading = false;
                 }
                 updatePlayerControlsState();
                 updatePlayPauseAndLoadingState(true);
@@ -2857,7 +2843,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
             public void onSeekGesture(long seekPosition) {
                 Log.d("VideoPlayer", "Seek gesture: " + seekPosition);
                 startSeekingState();
-                scheduleEndSeekingState(450);
+                scheduleEndSeekingState(600);
             }
             
             @Override
@@ -3011,7 +2997,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 
                 startSeekingState();
                 player.seekTo(newPosition);
-                scheduleEndSeekingState(450);
+                scheduleEndSeekingState(600);
                 Log.d("VideoPlayer", "Double tap skip: " + (isForward ? "forward" : "backward") + 
                       " to " + (newPosition / 1000) + "s (skip=" + (skipDuration / 1000) + "s)");
             }
@@ -4722,9 +4708,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
             if (loadingOverlay != null) {
                 loadingOverlay.setVisibility(View.GONE);
             }
-            if (player != null && (player.isPlaying() || player.getPlaybackState() == Player.STATE_READY)) {
-                isVideoLoading = false;
-            }
+            isVideoLoading = false;
             updatePlayPauseAndLoadingState(true);
         });
     }
@@ -6759,7 +6743,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
                     startSeekingState();
                     player.seekTo(newPosition);
-                    scheduleEndSeekingState(450);
+                    scheduleEndSeekingState(600);
                     Log.d("PlayerControls", "Skipped forward to: " + (newPosition / 1000) + "s (+" + (skipDuration / 1000) + "s)");
                 } else {
                     Log.w("PlayerControls", "Skip forward not available");
@@ -6825,7 +6809,6 @@ public class VideoPlayerActivity extends AppCompatActivity {
             // 4) Активно воспроизведение (isPlayWhenReady), но воспроизведение еще не началось (не играет) и не в конце
             boolean isBuffering = !isEnded && (
                     playbackState == Player.STATE_BUFFERING
-                    || isLoading
                     || isVideoLoading
                     || isSeeking
                     || isScrubbingTimeBar
