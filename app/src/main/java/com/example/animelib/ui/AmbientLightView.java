@@ -118,45 +118,21 @@ public class AmbientLightView extends View {
         try {
             int screenWidth = getWidth();
             int screenHeight = getHeight();
-            float videoLeft, videoTop, videoRight, videoBottom;
+            int bmpW = displayBitmap.getWidth();
+            int bmpH = displayBitmap.getHeight();
 
-            if (customVideoBounds != null) {
-                videoLeft = customVideoBounds.left;
-                videoTop = customVideoBounds.top;
-                videoRight = customVideoBounds.right;
-                videoBottom = customVideoBounds.bottom;
-            } else {
-                float videoAspect = 16f / 9f;
-                float screenAspect = (float) screenWidth / screenHeight;
+            if (bmpW <= 0 || bmpH <= 0) return;
 
-                if (screenAspect > videoAspect) {
-                    float videoWidth = screenHeight * videoAspect;
-                    videoLeft = (screenWidth - videoWidth) / 2f;
-                    videoTop = 0f;
-                    videoRight = videoLeft + videoWidth;
-                    videoBottom = screenHeight;
-                } else {
-                    float videoHeight = screenWidth / videoAspect;
-                    videoLeft = 0f;
-                    videoTop = 0f;
-                    videoRight = screenWidth;
-                    videoBottom = videoTop + videoHeight;
-                }
-            }
+            // CenterCrop заполнение всего экрана фоновым свечением
+            float scale = Math.max((float) screenWidth / bmpW, (float) screenHeight / bmpH);
+            float scaledW = bmpW * scale;
+            float scaledH = bmpH * scale;
+            float left = (screenWidth - scaledW) / 2f;
+            float top = (screenHeight - scaledH) / 2f;
 
-            float videoW = Math.max(1f, videoRight - videoLeft);
-            float videoH = Math.max(1f, videoBottom - videoTop);
+            srcRect.set(0, 0, bmpW, bmpH);
+            dstRect.set(left, top, left + scaledW, top + scaledH);
 
-            // Плавный ореол свечения: +25% по ширине, +35% по высоте вокруг плеера
-            float padX = videoW * 0.25f;
-            float padY = videoH * 0.35f;
-
-            glowRect.set(videoLeft - padX, videoTop - padY, videoRight + padX, videoBottom + padY);
-
-            srcRect.set(0, 0, displayBitmap.getWidth(), displayBitmap.getHeight());
-            dstRect.set(glowRect);
-
-            // Одиночный GPU-вызов с аппаратной интерполяцией
             drawPaint.setAlpha((int) (currentIntensity * 255));
             canvas.drawBitmap(displayBitmap, srcRect, dstRect, drawPaint);
 
