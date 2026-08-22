@@ -326,12 +326,19 @@ public class DownloadProgressBottomSheet extends FlexibleBottomSheetDialogFragme
                 } else {
                     sb.append("Серия 1");
                 }
-                if (epName != null && !epName.trim().isEmpty()) {
-                    sb.append(" — ").append(epName.trim());
-                }
 
                 taskHolder.tvTaskTitle.setText(sb.toString());
                 taskHolder.tvTaskTitle.setSelected(true);
+
+                if (taskHolder.tvEpisodeName != null) {
+                    String cleanName = com.example.animelib.VideoPlayerActivity.cleanEpisodeName(epName, rawEp);
+                    if (cleanName != null && !cleanName.trim().isEmpty()) {
+                        taskHolder.tvEpisodeName.setText(cleanName.trim());
+                        taskHolder.tvEpisodeName.setVisibility(View.VISIBLE);
+                    } else {
+                        taskHolder.tvEpisodeName.setVisibility(View.GONE);
+                    }
+                }
 
                 Context context = taskHolder.itemView.getContext();
                 int secondaryColor = ContextCompat.getColor(context, R.color.secondary_text_color);
@@ -407,6 +414,7 @@ public class DownloadProgressBottomSheet extends FlexibleBottomSheetDialogFragme
             com.example.animelib.ui.BorderProgressCardView itemCard;
             View itemContainer;
             TextView tvTaskTitle;
+            TextView tvEpisodeName;
             TextView tvPercent;
 
             TaskViewHolder(@NonNull View itemView) {
@@ -418,6 +426,7 @@ public class DownloadProgressBottomSheet extends FlexibleBottomSheetDialogFragme
                 }
                 itemContainer = itemView.findViewById(R.id.itemContainer);
                 tvTaskTitle = itemView.findViewById(R.id.tvTaskTitle);
+                tvEpisodeName = itemView.findViewById(R.id.tvEpisodeName);
                 tvPercent = itemView.findViewById(R.id.tvPercent);
 
                 if (tvTaskTitle != null) {

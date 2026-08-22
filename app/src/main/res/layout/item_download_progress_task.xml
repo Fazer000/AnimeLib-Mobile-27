@@ -14,36 +14,55 @@
         android:id="@+id/itemContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:orientation="vertical"
         android:paddingHorizontal="12dp"
-        android:paddingVertical="12dp">
+        android:paddingVertical="10dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvTaskTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Серия 1"
+                android:textSize="13sp"
+                android:fontFamily="@font/open_sans_bold"
+                android:textColor="@color/primary_text_color"
+                android:singleLine="true"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:scrollHorizontally="true" />
+
+            <TextView
+                android:id="@+id/tvPercent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0%"
+                android:textSize="12sp"
+                android:fontFamily="@font/open_sans_bold"
+                android:textColor="@color/secondary_text_color"
+                android:layout_marginStart="8dp" />
+
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/tvTaskTitle"
-            android:layout_width="0dp"
+            android:id="@+id/tvEpisodeName"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Серия 1"
-            android:textSize="13sp"
-            android:fontFamily="@font/open_sans_bold"
-            android:textColor="@color/primary_text_color"
-            android:singleLine="true"
-            android:ellipsize="marquee"
-            android:marqueeRepeatLimit="marquee_forever"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:scrollHorizontally="true" />
-
-        <TextView
-            android:id="@+id/tvPercent"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0%"
+            android:layout_marginTop="3dp"
             android:textSize="12sp"
-            android:fontFamily="@font/open_sans_bold"
+            android:fontFamily="@font/open_sans"
             android:textColor="@color/secondary_text_color"
-            android:layout_marginStart="8dp" />
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:visibility="gone" />
 
     </LinearLayout>
 
