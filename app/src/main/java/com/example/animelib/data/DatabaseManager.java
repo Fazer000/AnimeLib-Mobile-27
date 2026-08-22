@@ -109,10 +109,10 @@ public class DatabaseManager {
     public boolean loadAmbientLightSetting() {
         try {
             AppSettings settings = db.appSettingsDao().getSettingsSync();
-            return settings != null && settings.isEnableAmbientLight();
+            return settings == null ? true : settings.isEnableAmbientLight();
         } catch (Exception e) {
             Log.e(TAG, "Failed to load ambient light setting", e);
-            return false;
+            return true;
         }
     }
 

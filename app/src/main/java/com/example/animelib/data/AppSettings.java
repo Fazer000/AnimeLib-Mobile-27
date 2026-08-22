@@ -9,7 +9,7 @@ public class AppSettings {
     private int id;
     private String siteUrl;
     private boolean enable4K = false;
-    private boolean enableAmbientLight = false;
+    private boolean enableAmbientLight = true;
     private boolean enableDebanding = false;
     private boolean enableSurroundSound = true;
     private int surroundMode = 0; // 0 = Cinema 3D, 1 = Concert 3D, 2 = Voice 3D, 3 = Classic 5.1, 4 = Extreme 3D

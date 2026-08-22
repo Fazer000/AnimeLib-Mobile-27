@@ -49,7 +49,7 @@ public class SettingsBottomSheet extends FlexibleBottomSheetDialog {
     private final SpeedBottomSheet.OnSpeedChangedListener speedListener;
     private boolean enable4K = false;
     private final On4KToggledListener on4KToggledListener;
-    private boolean enableAmbientLight = false;
+    private boolean enableAmbientLight = true;
     private final OnAmbientLightToggledListener onAmbientLightToggledListener;
     private boolean enableDebanding = false;
     private OnDebandingToggledListener onDebandingToggledListener;

@@ -367,7 +367,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private boolean isDownloading = false;
     private int currentDownloadPercent = 0;
     private boolean enable4K = false;
-    private boolean enableAmbientLight = false;
+    private boolean enableAmbientLight = true;
     private boolean autoPlay = true;
     private int longSkipDuration = 85; // seconds
     private int currentTheme = ThemeUtils.THEME_SYSTEM;
@@ -1676,6 +1676,9 @@ public class VideoPlayerActivity extends AppCompatActivity {
         androidx.media3.ui.PlayerView ambientPlayerView = findViewById(R.id.ambientPlayerView);
         com.example.animelib.ui.AmbientVignetteOverlayView ambientVignetteOverlay = findViewById(R.id.ambientVignetteOverlay);
         ambientLightManager = new AmbientLightManager(this, playerView, ambientContainer, ambientPlayerView, ambientVignetteOverlay);
+        if (ambientLightManager != null) {
+            ambientLightManager.setEnabled(enableAmbientLight);
+        }
         
         // Initialize debanding manager
         com.example.animelib.ui.DebandingOverlayView debandingOverlayView = findViewById(R.id.debandingOverlayView);
