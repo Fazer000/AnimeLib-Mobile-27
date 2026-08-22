@@ -211,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
             public void onUpdateCheckResult(boolean hasUpdate, UpdateInfo updateInfo, String currentVersion) {
                 if (hasUpdate && updateInfo != null) {
                     runOnUiThread(() -> {
-                        if (!isFinishing() && !isDestroyed()) {
+                        if (!isFinishing() && !isDestroyed() && !isUrlInputShowing) {
                             CustomToast.showUpdateAlert(MainActivity.this, updateInfo);
                         }
                     });

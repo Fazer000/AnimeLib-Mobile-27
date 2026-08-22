@@ -65,6 +65,10 @@ public class CustomToast {
             return;
         }
 
+        if (activity instanceof com.example.animelib.UrlInputActivity) {
+            return;
+        }
+
         if (lastToastViewRef != null) {
             View oldToast = lastToastViewRef.get();
             if (oldToast != null) {
