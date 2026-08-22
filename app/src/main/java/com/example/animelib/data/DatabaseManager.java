@@ -116,38 +116,6 @@ public class DatabaseManager {
         }
     }
 
-    /**
-     * Сохраняет настройку дебандинга (сглаживание градиентов)
-     */
-    public void saveDebandingSetting(boolean enableDebanding) {
-        executor.execute(() -> {
-            try {
-                AppSettings settings = db.appSettingsDao().getSettingsSync();
-                if (settings == null) {
-                    settings = new AppSettings();
-                }
-                settings.setEnableDebanding(enableDebanding);
-                db.appSettingsDao().upsert(settings);
-                Log.d(TAG, "Saved debanding setting: " + enableDebanding);
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to save debanding setting", e);
-            }
-        });
-    }
-
-    /**
-     * Загружает настройку дебандинга
-     */
-    public boolean loadDebandingSetting() {
-        try {
-            AppSettings settings = db.appSettingsDao().getSettingsSync();
-            return settings != null && settings.isEnableDebanding();
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to load debanding setting", e);
-            return false;
-        }
-    }
-
     public void saveVideoFilters(float brightness, float contrast, float saturation, float gamma, float hue) {
         executor.execute(() -> {
             try {

@@ -402,55 +402,6 @@
                     android:checked="true"/>
             </LinearLayout>
 
-            <!-- Debanding Option -->
-            <LinearLayout
-                android:id="@+id/debandingOption"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="50dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="10dp"
-                android:background="@android:color/transparent">
-
-                <ImageView
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:src="@drawable/ic_deband"
-                    app:tint="@color/accent_text_color"
-                    android:layout_marginEnd="12dp" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Дебандинг"
-                        android:textColor="@color/primary_text_color"
-                        android:textSize="16sp"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Сглаживание градиентов"
-                        android:textColor="@color/accent_text_color"
-                        android:textSize="12sp"/>
-                </LinearLayout>
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/debandingSwitch"
-                    android:layout_width="wrap_content"
-                    android:layout_height="30dp"
-                    app:trackTint="@color/switch_track_tint"
-                    app:thumbTint="@color/switch_thumb_tint"
-                    android:checked="false"/>
-            </LinearLayout>
-
             <!-- 4K Option -->
             <LinearLayout
                 android:id="@+id/fourKOption"

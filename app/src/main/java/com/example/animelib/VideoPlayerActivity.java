@@ -264,10 +264,6 @@ public class VideoPlayerActivity extends AppCompatActivity {
     private com.example.animelib.ui.AmbientVignetteOverlayView ambientVignetteOverlay;
     private float lastCornerRadiusPx = -1f;
 
-    // Debanding manager
-    private com.example.animelib.managers.DebandingManager debandingManager;
-    private boolean enableDebanding = false;
-
     // Video filters manager
     private com.example.animelib.managers.VideoFiltersManager videoFiltersManager;
     private float filterBrightness = 0f;
@@ -486,7 +482,6 @@ public class VideoPlayerActivity extends AppCompatActivity {
         executor.execute(() -> {
             enable4K = apiService.load4KSetting();
             enableAmbientLight = apiService.loadAmbientLightSetting();
-            enableDebanding = apiService.loadDebandingSetting();
             enableSurroundSound = apiService.loadSurroundSoundSetting();
             surroundMode = apiService.loadSurround3DMode();
             surroundSpatialWidth = apiService.loadSurroundSpatialWidth();
@@ -521,9 +516,6 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 }
                 if (ambientLightManager != null) {
                     ambientLightManager.setEnabled(enableAmbientLight);
-                }
-                if (debandingManager != null) {
-                    debandingManager.setEnabled(enableDebanding);
                 }
                 if (videoFiltersManager != null) {
                     videoFiltersManager.setFilters(filterBrightness, filterContrast, filterSaturation, filterGamma, filterHue);
@@ -1680,10 +1672,6 @@ public class VideoPlayerActivity extends AppCompatActivity {
             ambientLightManager.setEnabled(enableAmbientLight);
         }
         
-        // Initialize debanding manager
-        com.example.animelib.ui.DebandingOverlayView debandingOverlayView = findViewById(R.id.debandingOverlayView);
-        debandingManager = new com.example.animelib.managers.DebandingManager(this, playerView, debandingOverlayView);
-
         // Initialize video filters manager
         videoFiltersManager = new com.example.animelib.managers.VideoFiltersManager(this, playerView);
         if (videoFiltersManager != null) {
@@ -3956,14 +3944,6 @@ public class VideoPlayerActivity extends AppCompatActivity {
                     }
                     Log.d("VideoPlayer", "Video filters changed: b=" + b + ", c=" + c + ", s=" + s + ", g=" + g + ", h=" + h);
                 });
-        dialog.setDebanding(enableDebanding, enabled -> {
-            enableDebanding = enabled;
-            apiService.saveDebandingSetting(enabled);
-            if (debandingManager != null) {
-                debandingManager.setEnabled(enabled);
-            }
-            Log.d("VideoPlayer", "Debanding setting changed to: " + enabled);
-        });
         dialog.setSurround3DSettings(
                 enableSurroundSound,
                 surroundMode,

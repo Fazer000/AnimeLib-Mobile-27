@@ -1090,14 +1090,6 @@ public class ApiService {
         return databaseManager.loadAmbientLightSetting();
     }
 
-    public void saveDebandingSetting(boolean enableDebanding) {
-        databaseManager.saveDebandingSetting(enableDebanding);
-    }
-
-    public boolean loadDebandingSetting() {
-        return databaseManager.loadDebandingSetting();
-    }
-
     public void saveVideoFilters(float brightness, float contrast, float saturation, float gamma, float hue) {
         databaseManager.saveVideoFilters(brightness, contrast, saturation, gamma, hue);
     }
