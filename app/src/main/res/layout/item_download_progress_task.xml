@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.example.animelib.ui.BorderProgressCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/itemCard"
     android:layout_width="match_parent"
@@ -8,59 +8,43 @@
     app:cardCornerRadius="10dp"
     app:cardElevation="0dp"
     app:cardBackgroundColor="@color/chip_unselected_bg"
-    app:strokeWidth="0.5dp"
-    app:strokeColor="@color/chip_unselected_stroke">
+    app:strokeWidth="0dp">
 
     <LinearLayout
         android:id="@+id/itemContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingHorizontal="10dp"
-        android:paddingVertical="10dp">
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="12dp">
 
-        <!-- Top row: Episode title on left, Percentage on right -->
-        <LinearLayout
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/tvTaskTitle"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:layout_weight="1"
+            android:text="Серия 1"
+            android:textSize="13sp"
+            android:fontFamily="@font/open_sans_bold"
+            android:textColor="@color/primary_text_color"
+            android:singleLine="true"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:scrollHorizontally="true" />
 
-            <TextView
-                android:id="@+id/tvTaskTitle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Серия 1"
-                android:textSize="12sp"
-                android:fontFamily="@font/open_sans_bold"
-                android:textColor="@color/primary_text_color"
-                android:maxLines="1"
-                android:ellipsize="end" />
-
-            <TextView
-                android:id="@+id/tvPercent"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0%"
-                android:textSize="11sp"
-                android:fontFamily="@font/open_sans_bold"
-                android:textColor="@color/secondary_text_color"
-                android:layout_marginStart="4dp" />
-
-        </LinearLayout>
-
-        <!-- Bottom row: Horizontal Progress Bar -->
-        <ProgressBar
-            android:id="@+id/pbItemProgress"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="4dp"
-            android:layout_marginTop="8dp"
-            android:max="100"
-            android:progress="0"
-            android:progressDrawable="@drawable/progress_bar_background" />
+        <TextView
+            android:id="@+id/tvPercent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0%"
+            android:textSize="12sp"
+            android:fontFamily="@font/open_sans_bold"
+            android:textColor="@color/secondary_text_color"
+            android:layout_marginStart="8dp" />
 
     </LinearLayout>
 
-</com.google.android.material.card.MaterialCardView>
+</com.example.animelib.ui.BorderProgressCardView>

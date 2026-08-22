@@ -315,45 +315,71 @@ public class DownloadProgressBottomSheet extends FlexibleBottomSheetDialogFragme
                 DownloadTask task = item.task;
 
                 String rawEp = task.getEpisodeNumber();
-                String epTitle;
-                if (rawEp != null && rawEp.toLowerCase().contains("серия")) {
-                    epTitle = rawEp;
+                String epName = task.getEpisodeName();
+                StringBuilder sb = new StringBuilder();
+                if (rawEp != null && !rawEp.trim().isEmpty()) {
+                    if (rawEp.toLowerCase().contains("серия")) {
+                        sb.append(rawEp.trim());
+                    } else {
+                        sb.append("Серия ").append(rawEp.trim());
+                    }
                 } else {
-                    epTitle = "Серия " + (rawEp != null ? rawEp : "1");
+                    sb.append("Серия 1");
                 }
-                taskHolder.tvTaskTitle.setText(epTitle);
+                if (epName != null && !epName.trim().isEmpty()) {
+                    sb.append(" — ").append(epName.trim());
+                }
 
-                int secondaryColor = ContextCompat.getColor(taskHolder.itemView.getContext(), R.color.secondary_text_color);
-                int accentColor = ContextCompat.getColor(taskHolder.itemView.getContext(), R.color.accent_text_color);
+                taskHolder.tvTaskTitle.setText(sb.toString());
+                taskHolder.tvTaskTitle.setSelected(true);
 
-                taskHolder.pbItemProgress.setMax(100);
+                Context context = taskHolder.itemView.getContext();
+                int secondaryColor = ContextCompat.getColor(context, R.color.secondary_text_color);
+                int accentColor = ContextCompat.getColor(context, R.color.accent_text_color);
+
+                int selectedBg = ContextCompat.getColor(context, R.color.chip_selected_bg);
+                int unselectedBg = ContextCompat.getColor(context, R.color.chip_unselected_bg);
+                int baseStroke = ContextCompat.getColor(context, R.color.chip_unselected_stroke);
+                int accentStroke = ContextCompat.getColor(context, R.color.chip_selected_stroke);
+
+                if (taskHolder.itemContainer != null) {
+                    taskHolder.itemContainer.setBackground(null);
+                }
 
                 switch (item.status) {
                     case DownloadService.TaskProgressItem.STATUS_DOWNLOADING:
-                        taskHolder.itemContainer.setBackgroundResource(R.drawable.episode_item_selected);
-                        taskHolder.pbItemProgress.setProgress(item.percent);
+                        if (taskHolder.itemCard != null) {
+                            taskHolder.itemCard.setCardBackgroundColor(selectedBg);
+                            taskHolder.itemCard.setProgressValues(item.percent, baseStroke, accentStroke, 2.5f);
+                        }
                         taskHolder.tvPercent.setText(item.percent + "%");
                         taskHolder.tvPercent.setTextColor(secondaryColor);
                         break;
 
                     case DownloadService.TaskProgressItem.STATUS_COMPLETED:
-                        taskHolder.itemContainer.setBackgroundResource(R.drawable.episode_item_normal);
-                        taskHolder.pbItemProgress.setProgress(100);
+                        if (taskHolder.itemCard != null) {
+                            taskHolder.itemCard.setCardBackgroundColor(unselectedBg);
+                            taskHolder.itemCard.setProgressValues(100, baseStroke, 0xFF10B981, 2.0f);
+                        }
                         taskHolder.tvPercent.setText("100%");
                         taskHolder.tvPercent.setTextColor(0xFF10B981);
                         break;
 
                     case DownloadService.TaskProgressItem.STATUS_ERROR:
-                        taskHolder.itemContainer.setBackgroundResource(R.drawable.episode_item_normal);
-                        taskHolder.pbItemProgress.setProgress(item.percent);
+                        if (taskHolder.itemCard != null) {
+                            taskHolder.itemCard.setCardBackgroundColor(unselectedBg);
+                            taskHolder.itemCard.setProgressValues(item.percent, baseStroke, 0xFFEF4444, 2.0f);
+                        }
                         taskHolder.tvPercent.setText("Ошибка");
                         taskHolder.tvPercent.setTextColor(0xFFEF4444);
                         break;
 
                     case DownloadService.TaskProgressItem.STATUS_WAITING:
                     default:
-                        taskHolder.itemContainer.setBackgroundResource(R.drawable.episode_item_normal);
-                        taskHolder.pbItemProgress.setProgress(0);
+                        if (taskHolder.itemCard != null) {
+                            taskHolder.itemCard.setCardBackgroundColor(unselectedBg);
+                            taskHolder.itemCard.setProgressValues(0, baseStroke, accentStroke, 1.5f);
+                        }
                         taskHolder.tvPercent.setText("0%");
                         taskHolder.tvPercent.setTextColor(accentColor);
                         break;
@@ -378,17 +404,25 @@ public class DownloadProgressBottomSheet extends FlexibleBottomSheetDialogFragme
         }
 
         class TaskViewHolder extends RecyclerView.ViewHolder {
+            com.example.animelib.ui.BorderProgressCardView itemCard;
             View itemContainer;
             TextView tvTaskTitle;
-            ProgressBar pbItemProgress;
             TextView tvPercent;
 
             TaskViewHolder(@NonNull View itemView) {
                 super(itemView);
+                if (itemView instanceof com.example.animelib.ui.BorderProgressCardView) {
+                    itemCard = (com.example.animelib.ui.BorderProgressCardView) itemView;
+                } else {
+                    itemCard = itemView.findViewById(R.id.itemCard);
+                }
                 itemContainer = itemView.findViewById(R.id.itemContainer);
                 tvTaskTitle = itemView.findViewById(R.id.tvTaskTitle);
-                pbItemProgress = itemView.findViewById(R.id.pbItemProgress);
                 tvPercent = itemView.findViewById(R.id.tvPercent);
+
+                if (tvTaskTitle != null) {
+                    tvTaskTitle.setSelected(true);
+                }
             }
         }
     }
