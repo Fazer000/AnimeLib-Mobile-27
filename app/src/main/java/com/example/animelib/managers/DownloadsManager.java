@@ -179,12 +179,13 @@ public class DownloadsManager {
                     );
                     databaseManager.saveDownloadedAnime(animeEntity);
 
-                    String epId = task.getAnimeId() + "_" + task.getEpisodeNumber() + "_" + task.getTeamName();
+                    String epId = task.getAnimeId() + "_" + (task.getEpisodeId() != 0 ? task.getEpisodeId() : task.getEpisodeNumber()) + "_" + (task.getTeamName() != null ? task.getTeamName() : "");
                     String cleanEpName = com.example.animelib.VideoPlayerActivity.cleanEpisodeName(task.getEpisodeName(), task.getEpisodeNumber());
                     DownloadedEpisodeEntity episodeEntity = new DownloadedEpisodeEntity(
                             epId,
                             task.getAnimeId(),
                             task.getAnimeTitle(),
+                            task.getEpisodeId(),
                             task.getEpisodeNumber(),
                             cleanEpName,
                             task.getTeamName(),

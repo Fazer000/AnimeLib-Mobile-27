@@ -20,6 +20,21 @@
         android:textStyle="bold"
         android:gravity="center"
         android:text="1 серия" />
+
+    <TextView
+        android:id="@+id/statusTagText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:paddingHorizontal="5dp"
+        android:paddingVertical="1.5dp"
+        android:background="@drawable/tag_status_background"
+        android:text="RECAP"
+        android:textStyle="bold"
+        android:textSize="9.5sp"
+        android:textColor="#FFFFFF"
+        android:gravity="center"
+        android:visibility="gone" />
     
     <ImageView
         android:id="@+id/bookmarkIcon"

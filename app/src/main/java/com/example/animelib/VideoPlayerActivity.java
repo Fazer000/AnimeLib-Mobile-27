@@ -3766,15 +3766,21 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
         EpisodesListResponse.EpisodeItem currentEpisode = episodesManager != null ? episodesManager.getCurrentEpisode() : null;
         String epNum = currentEpisode != null ? currentEpisode.getNumber() : (getIntent() != null ? getIntent().getStringExtra("EXTRA_EPISODE_NUMBER") : null);
-        if (epNum == null) return null;
+        int currentEpId = currentEpisode != null ? currentEpisode.getId() : 0;
+        if (epNum == null && currentEpId == 0) return null;
 
         EpisodeResponse.PlayerData currentPlayerData = playersManager != null ? playersManager.getCurrentPlayerData() : null;
         String team = (currentPlayerData != null && currentPlayerData.getTeam() != null) ? currentPlayerData.getTeam().getName() : null;
 
         com.example.animelib.data.entity.DownloadedEpisodeEntity downloaded = null;
 
-        // 1. Try exact match with team if team is available
-        if (team != null && !team.isEmpty()) {
+        // 1. Try exact match by episodeId and team
+        if (currentEpId != 0) {
+            downloaded = databaseManager.findDownloadedEpisode(animeId, currentEpId, epNum, team);
+        }
+
+        // 1b. Fallback to exact match by epNum and team
+        if (downloaded == null && team != null && !team.isEmpty() && epNum != null) {
             downloaded = databaseManager.findDownloadedEpisode(animeId, epNum, team);
         }
 
@@ -3783,7 +3789,10 @@ public class VideoPlayerActivity extends AppCompatActivity {
             List<com.example.animelib.data.entity.DownloadedEpisodeEntity> downloadedEps = databaseManager.getEpisodesForAnimeSync(animeId);
             if (downloadedEps != null) {
                 for (com.example.animelib.data.entity.DownloadedEpisodeEntity ep : downloadedEps) {
-                    if (epNum.equals(ep.getEpisodeNumber())) {
+                    if (currentEpId != 0 && ep.getEpisodeId() == currentEpId) {
+                        downloaded = ep;
+                        break;
+                    } else if (epNum != null && epNum.equals(ep.getEpisodeNumber())) {
                         downloaded = ep;
                         break;
                     }
@@ -4135,11 +4144,13 @@ public class VideoPlayerActivity extends AppCompatActivity {
 
                     for (com.example.animelib.data.entity.DownloadedEpisodeEntity dep : downloadedEps) {
                         EpisodesListResponse.EpisodeItem item = new EpisodesListResponse.EpisodeItem();
-                        int id = 0;
-                        try {
-                            id = Integer.parseInt(dep.getEpisodeNumber());
-                        } catch (Exception ignored) {
-                            id = Math.abs(dep.getId().hashCode());
+                        int id = dep.getEpisodeId();
+                        if (id <= 0) {
+                            try {
+                                id = Integer.parseInt(dep.getEpisodeNumber());
+                            } catch (Exception ignored) {
+                                id = Math.abs(dep.getId().hashCode());
+                            }
                         }
                         item.setId(id);
                         item.setNumber(dep.getEpisodeNumber());

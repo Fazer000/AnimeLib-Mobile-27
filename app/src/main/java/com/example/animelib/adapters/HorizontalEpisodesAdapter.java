@@ -75,6 +75,17 @@ public class HorizontalEpisodesAdapter extends RecyclerView.Adapter<HorizontalEp
         // Set episode number + "серия"
         String episodeText = episode.getNumber() + " серия";
         holder.episodeText.setText(episodeText);
+
+        // Status tag (e.g. RECAP, SPECIAL)
+        String statusTag = com.example.animelib.util.EpisodeUtils.getTransliteratedStatusLabel(episode.getStatus());
+        if (holder.statusTagText != null) {
+            if (statusTag != null && !statusTag.isEmpty()) {
+                holder.statusTagText.setText(statusTag);
+                holder.statusTagText.setVisibility(View.VISIBLE);
+            } else {
+                holder.statusTagText.setVisibility(View.GONE);
+            }
+        }
         
         // Check if this episode has a bookmark
         boolean hasBookmark = false;
@@ -171,11 +182,13 @@ public class HorizontalEpisodesAdapter extends RecyclerView.Adapter<HorizontalEp
 
     public static class EpisodeViewHolder extends RecyclerView.ViewHolder {
         TextView episodeText;
+        TextView statusTagText;
         android.widget.ImageView bookmarkIcon;
 
         EpisodeViewHolder(@NonNull View itemView) {
             super(itemView);
             episodeText = itemView.findViewById(R.id.episodeText);
+            statusTagText = itemView.findViewById(R.id.statusTagText);
             bookmarkIcon = itemView.findViewById(R.id.bookmarkIcon);
         }
     }

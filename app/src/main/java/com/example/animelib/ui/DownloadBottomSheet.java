@@ -809,8 +809,9 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
         if (pbLoading != null) pbLoading.setVisibility(View.VISIBLE);
         Executors.newSingleThreadExecutor().execute(() -> {
             for (EpisodeCheckItem item : checkItems) {
+                int epId = item.episode.getId();
                 String epNum = item.episode.getNumber();
-                DownloadedEpisodeEntity downloaded = databaseManager.findDownloadedEpisode(animeId, epNum, option.teamName);
+                DownloadedEpisodeEntity downloaded = databaseManager.findDownloadedEpisode(animeId, epId, epNum, option.teamName);
                 item.isAlreadyDownloaded = (downloaded != null);
                 item.isAvailable = true; // By default available
                 item.isChecked = item.isAvailable && !item.isAlreadyDownloaded;
@@ -986,6 +987,16 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
             String title = item.episode.getNumber() + " Серия";
             holder.tvEpisodeName.setText(title);
 
+            String statusTag = com.example.animelib.util.EpisodeUtils.getTransliteratedStatusLabel(item.episode.getStatus());
+            if (holder.statusTagText != null) {
+                if (statusTag != null && !statusTag.isEmpty()) {
+                    holder.statusTagText.setText(statusTag);
+                    holder.statusTagText.setVisibility(View.VISIBLE);
+                } else {
+                    holder.statusTagText.setVisibility(View.GONE);
+                }
+            }
+
             if (item.isAlreadyDownloaded) {
                 holder.tvStatus.setText("Скачано");
                 holder.tvStatus.setTextColor(0xFF4CAF50); // green
@@ -1035,12 +1046,14 @@ public class DownloadBottomSheet extends FlexibleBottomSheetDialogFragment {
         class ViewHolder extends RecyclerView.ViewHolder {
             View itemContainer;
             TextView tvEpisodeName;
+            TextView statusTagText;
             TextView tvStatus;
 
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 itemContainer = itemView.findViewById(R.id.itemContainer);
                 tvEpisodeName = itemView.findViewById(R.id.tvEpisodeName);
+                statusTagText = itemView.findViewById(R.id.statusTagText);
                 tvStatus = itemView.findViewById(R.id.tvStatus);
             }
         }

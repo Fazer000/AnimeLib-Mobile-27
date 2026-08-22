@@ -8,9 +8,10 @@ import androidx.room.PrimaryKey;
 public class DownloadedEpisodeEntity {
     @PrimaryKey
     @NonNull
-    private String id; // animeId_episodeNumber_teamName
+    private String id; // animeId_episodeId_teamName
     private String animeId;
     private String animeTitle;
+    private int episodeId;
     private String episodeNumber;
     private String episodeName;
     private String teamName;
@@ -21,12 +22,13 @@ public class DownloadedEpisodeEntity {
     private String quality;
 
     public DownloadedEpisodeEntity(@NonNull String id, String animeId, String animeTitle,
-                                   String episodeNumber, String episodeName, String teamName,
-                                   String playerType, String localFilePath, long fileSize,
-                                   long downloadedAt, String quality) {
+                                   int episodeId, String episodeNumber, String episodeName,
+                                   String teamName, String playerType, String localFilePath,
+                                   long fileSize, long downloadedAt, String quality) {
         this.id = id;
         this.animeId = animeId;
         this.animeTitle = animeTitle;
+        this.episodeId = episodeId;
         this.episodeNumber = episodeNumber;
         this.episodeName = episodeName;
         this.teamName = teamName;
@@ -35,6 +37,14 @@ public class DownloadedEpisodeEntity {
         this.fileSize = fileSize;
         this.downloadedAt = downloadedAt;
         this.quality = quality;
+    }
+
+    @androidx.room.Ignore
+    public DownloadedEpisodeEntity(@NonNull String id, String animeId, String animeTitle,
+                                   String episodeNumber, String episodeName, String teamName,
+                                   String playerType, String localFilePath, long fileSize,
+                                   long downloadedAt, String quality) {
+        this(id, animeId, animeTitle, 0, episodeNumber, episodeName, teamName, playerType, localFilePath, fileSize, downloadedAt, quality);
     }
 
     @NonNull
@@ -46,6 +56,9 @@ public class DownloadedEpisodeEntity {
 
     public String getAnimeTitle() { return animeTitle; }
     public void setAnimeTitle(String animeTitle) { this.animeTitle = animeTitle; }
+
+    public int getEpisodeId() { return episodeId; }
+    public void setEpisodeId(int episodeId) { this.episodeId = episodeId; }
 
     public String getEpisodeNumber() { return episodeNumber; }
     public void setEpisodeNumber(String episodeNumber) { this.episodeNumber = episodeNumber; }

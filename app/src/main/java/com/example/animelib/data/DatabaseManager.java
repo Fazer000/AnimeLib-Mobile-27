@@ -662,6 +662,27 @@ public class DatabaseManager {
         return db.downloadedAnimeDao().getEpisodesForAnimeSync(animeId);
     }
 
+    public com.example.animelib.data.entity.DownloadedEpisodeEntity findDownloadedEpisode(String animeId, int episodeId, String episodeNumber, String teamName) {
+        if (episodeId != 0) {
+            com.example.animelib.data.entity.DownloadedEpisodeEntity ep = null;
+            if (teamName != null && !teamName.isEmpty()) {
+                ep = db.downloadedAnimeDao().findDownloadedEpisodeByEpisodeId(animeId, episodeId, teamName);
+            }
+            if (ep == null) {
+                ep = db.downloadedAnimeDao().findDownloadedEpisodeByEpisodeIdOnly(animeId, episodeId);
+            }
+            if (ep != null) return ep;
+        }
+        if (episodeNumber != null && !episodeNumber.isEmpty() && teamName != null) {
+            return db.downloadedAnimeDao().findDownloadedEpisode(animeId, episodeNumber, teamName);
+        }
+        return null;
+    }
+
+    public com.example.animelib.data.entity.DownloadedEpisodeEntity findDownloadedEpisode(String animeId, int episodeId, String teamName) {
+        return findDownloadedEpisode(animeId, episodeId, null, teamName);
+    }
+
     public com.example.animelib.data.entity.DownloadedEpisodeEntity findDownloadedEpisode(String animeId, String episodeNumber, String teamName) {
         return db.downloadedAnimeDao().findDownloadedEpisode(animeId, episodeNumber, teamName);
     }

@@ -21,6 +21,9 @@ public class EpisodesListResponse {
         private String number;
         private String season;
 
+        @com.google.gson.annotations.SerializedName("status")
+        private Status status;
+
         public EpisodeItem() {}
 
         public int getId() {
@@ -53,6 +56,45 @@ public class EpisodesListResponse {
 
         public void setSeason(String season) {
             this.season = season;
+        }
+
+        public Status getStatus() {
+            return status;
+        }
+
+        public void setStatus(Status status) {
+            this.status = status;
+        }
+
+        public static class Status {
+            @com.google.gson.annotations.SerializedName("id")
+            private String id;
+
+            @com.google.gson.annotations.SerializedName("label")
+            private String label;
+
+            public Status() {}
+
+            public Status(String id, String label) {
+                this.id = id;
+                this.label = label;
+            }
+
+            public String getId() {
+                return id;
+            }
+
+            public void setId(String id) {
+                this.id = id;
+            }
+
+            public String getLabel() {
+                return label;
+            }
+
+            public void setLabel(String label) {
+                this.label = label;
+            }
         }
     }
 }

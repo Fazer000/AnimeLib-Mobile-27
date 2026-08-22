@@ -14,17 +14,39 @@
     android:clickable="true"
     android:focusable="true">
 
-    <TextView
-        android:id="@+id/tvEpisodeName"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="1 Серия"
-        android:textSize="14sp"
-        android:fontFamily="@font/open_sans_bold"
-        android:textColor="@color/primary_text_color"
-        android:gravity="center"
-        android:maxLines="1"
-        android:ellipsize="end" />
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/tvEpisodeName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1 Серия"
+            android:textSize="14sp"
+            android:fontFamily="@font/open_sans_bold"
+            android:textColor="@color/primary_text_color"
+            android:gravity="center"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/statusTagText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:paddingHorizontal="5dp"
+            android:paddingVertical="1.5dp"
+            android:background="@drawable/tag_status_background"
+            android:text="RECAP"
+            android:textStyle="bold"
+            android:textSize="9.5sp"
+            android:textColor="#FFFFFF"
+            android:gravity="center"
+            android:visibility="gone" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tvStatus"

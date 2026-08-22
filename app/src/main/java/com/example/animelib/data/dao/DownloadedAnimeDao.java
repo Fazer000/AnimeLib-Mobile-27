@@ -52,6 +52,12 @@ public interface DownloadedAnimeDao {
     @Query("SELECT * FROM downloaded_episodes WHERE animeId = :animeId AND episodeNumber = :episodeNumber AND teamName = :teamName LIMIT 1")
     DownloadedEpisodeEntity findDownloadedEpisode(String animeId, String episodeNumber, String teamName);
 
+    @Query("SELECT * FROM downloaded_episodes WHERE animeId = :animeId AND episodeId = :episodeId AND teamName = :teamName LIMIT 1")
+    DownloadedEpisodeEntity findDownloadedEpisodeByEpisodeId(String animeId, int episodeId, String teamName);
+
+    @Query("SELECT * FROM downloaded_episodes WHERE animeId = :animeId AND episodeId = :episodeId LIMIT 1")
+    DownloadedEpisodeEntity findDownloadedEpisodeByEpisodeIdOnly(String animeId, int episodeId);
+
     @Query("SELECT * FROM downloaded_episodes WHERE localFilePath = :path LIMIT 1")
     DownloadedEpisodeEntity findEpisodeByPath(String path);
 }
